@@ -21,7 +21,6 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     -- เซฟข้อมูลเฉพาะผู้เล่นคนที่จะวาร์ปออกก่อน
     local saveSuccess = FarmDataManager.SaveSinglePlayer(player)
     while not saveSuccess do
-        warn("⚠️ คำเตือน: เซฟข้อมูลไม่สำเร็จ แต่ระบบจะดำเนินการวาร์ปต่อ...")
         task.wait(1) -- เผื่อเวลาให้ระบบลองใหม่ชั่วคราว
         saveSuccess = FarmDataManager.SaveSinglePlayer(player)
     end

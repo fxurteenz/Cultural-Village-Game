@@ -100,8 +100,6 @@ function FarmDataManager.SaveAllData()
     end
 
     -- 3.1 บันทึก World Data (แปลงผัก)
-    local worldKey = FarmDataManager.HostId .. "_" .. FarmDataManager.SaveSlot .. "_World"
-    -- pcall(function() GameSaveDS:SetAsync(worldKey, FarmDataManager.WorldData) end)
     FarmDataManager.SaveWorldData()
 
     -- 3.2 บันทึก Player Data ของทุกคนที่ยืนอยู่ในฟาร์มตอนนี้
@@ -119,6 +117,9 @@ function FarmDataManager.SaveAllData()
             local saves = oldData or {}
             if saves[FarmDataManager.SaveSlot] then
                 saves[FarmDataManager.SaveSlot].last_place_id = game.PlaceId
+                saves[FarmDataManager.SaveSlot].day = FarmDataManager.WorldData.time.day
+                saves[FarmDataManager.SaveSlot].season = FarmDataManager.WorldData.time.season
+                saves[FarmDataManager.SaveSlot].year = FarmDataManager.WorldData.time.year
             end
             return saves
         end)
@@ -144,9 +145,7 @@ function FarmDataManager.SaveSinglePlayer(player)
     end)
 
     if success then
-        print("💾 บันทึกข้อมูลของ " .. player.Name ..
-                  " สำเร็จ 100% ก่อนวาร์ป")
-        FarmDataManager.PlayersData[player.UserId] = nil -- เคลียร์แรม
+        FarmDataManager.PlayersData[player.UserId] = nil 
         return true
     else
         warn("❌ บันทึกข้อมูลไม่สำเร็จ: " .. tostring(err))

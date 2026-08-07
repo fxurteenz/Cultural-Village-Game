@@ -1,8 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local QuestManager = require(ReplicatedStorage:WaitForChild("Module"):WaitForChild("QuestModule"))
 local GetQuestDataRF = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetQuestData")
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local QuestNotiEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestNotiEvent")
+local BindableQuestEvent = ServerStorage:WaitForChild("BindableEvent"):WaitForChild("QuestEvent")
 
 GetQuestDataRF.OnServerInvoke = function(player)
 	return QuestManager.GetAllQuestData(player)
@@ -47,3 +49,22 @@ QuestEvent.OnServerEvent:Connect(function(player,questID,amount,event,targetName
 	end	
 end)
 
+BindableQuestEvent.Event:Connect(function(player,questID,amount,event,targetName)
+	if event == "submit" then
+		local questInfo = QuestManager.GetQuestInfo(questID)
+		if questInfo and questInfo.TargetAmount == 1 then
+			QuestManager.AddProgress(player, questID, 1, targetName)
+		end
+
+		local submitResult, submitMessage = QuestManager.SubmitQuest(player, questID)
+		print("Submit:",questID, submitResult, "ข้อความ:", submitMessage)
+
+		if submitResult then
+			QuestEvent:FireClient(player, "refresh")
+        else
+            warn("cannot submit quest")
+		end
+
+		QuestNotiEvent:FireClient(player, submitMessage)
+	end
+end)

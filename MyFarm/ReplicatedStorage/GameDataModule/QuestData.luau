@@ -7,6 +7,13 @@ local QuestData = {
         TargetAmount = 1,
         Rewards = { Coins = 0, Exp = 50 }
     },
+    ["QT002"] = {
+        Name = "ไปหาผู้ใหญ่บ้านที่หมู่บ้าน",
+        Description = "คุยกับผู้ใหญ่บ้านที่หมู่บ้าน",
+        location = "หมู่บ้าน",
+        TargetAmount = 1,
+        Rewards = { Coins = 0, Exp = 50 }
+    },
     ["Q001"] = {
         Name = "พูดคุยกับชาวบ้าน",
         Description = "สำรวจและพูดคุยกับชาวบ้านตามที่ต่างๆในหมู่บ้าน",
