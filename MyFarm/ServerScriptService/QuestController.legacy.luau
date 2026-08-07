@@ -37,7 +37,7 @@ QuestEvent.OnServerEvent:Connect(function(player,questID,amount,event,targetName
 		if submitResult then
 			QuestEvent:FireClient(player, "refresh")
 		end
-		
+
 		QuestNotiEvent:FireClient(player, submitMessage) 
 	elseif event == "update" then
 		local updateResult,updateMessage = QuestManager.AddProgress(player,questID,amount,targetName)
