@@ -5,7 +5,7 @@ local ItemsStore = ServerStorage:WaitForChild("Items")
 
 local ItemDatabase = require(ReplicatedStorage:WaitForChild("GameDataModule"):WaitForChild("ItemDatabase"))
 
-local GameDataManager = require(ServerScriptService:WaitForChild("CityDataManager"))
+local GameDataManager = require(ServerScriptService:WaitForChild("FarmDataManager"))
 
 local equipEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("EquipItemEvent")
 local GiveItemEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("GiveItemEvent")
