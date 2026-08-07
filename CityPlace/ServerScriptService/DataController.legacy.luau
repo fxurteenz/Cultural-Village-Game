@@ -95,7 +95,6 @@ Players.PlayerAdded:Connect(function(player)
             CityDataManager.LoadWorldData(hostId, saveSlot)
         end
 
-		-- 🎒 โหลดเฉพาะกระเป๋าผู้เล่นคนนั้นๆ (ไม่โหลด World Data)
 		CityDataManager.LoadPlayerData(player, hostId, saveSlot)
 		print("🎒 โหลดกระเป๋าผู้เล่น " .. player.Name .. " เข้าสู่เมืองพร้อมเล่น!")
 

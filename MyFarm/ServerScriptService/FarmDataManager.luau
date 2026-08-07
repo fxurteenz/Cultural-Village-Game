@@ -59,28 +59,28 @@ end
 -- ==========================================
 -- 2. โหลดข้อมูลผู้เล่น (Player Data) - เรียกทุกครั้งที่มีคนวาร์ปเข้าฟาร์ม
 -- ==========================================
-function FarmDataManager.LoadPlayerData(player)
-	if not FarmDataManager.HostId then return end
-	
-	local playerKey = FarmDataManager.HostId .. "_" .. FarmDataManager.SaveSlot .. "_" .. tostring(player.UserId)
-	local success, data = pcall(function() 
-		return GameSaveDS:GetAsync(playerKey) 
-	end)
-	
-	if success and data then
-		data.quests = data.quests or {}
-		data.quests.active = data.quests.active or {}
-		data.quests.completed = data.quests.completed or {}
-		data.player_items = data.player_items or {}
-		data.coins = data.coins or 500
-		
-		FarmDataManager.PlayersData[player.UserId] = data
-		print("🎒 โหลดกระเป๋าผู้เล่นสำเร็จ (และอัปเกรดโครงสร้างเซฟให้แล้ว): " .. player.Name)
-	else
-		FarmDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
-		print("✨ สร้างกระเป๋าเริ่มต้นใหม่ให้: " .. player.Name)
-	end
+function FarmDataManager.LoadPlayerData(player, hostId, saveSlot)
+    if not FarmDataManager.HostId then
+        FarmDataManager.HostId = tostring(hostId)
+        FarmDataManager.SaveSlot = saveSlot
+    end
+
+    local playerKey = tostring(hostId) .. "_" .. saveSlot .. "_" .. tostring(player.UserId)
+    local success, data = pcall(function() return GameSaveDS:GetAsync(playerKey) end)
+
+    if success and data then
+        data.quests = data.quests or {}
+        data.quests.active = data.quests.active or {}
+        data.quests.completed = data.quests.completed or {}
+        data.player_items = data.player_items or {}
+        data.coins = data.coins or 500
+
+        FarmDataManager.PlayersData[player.UserId] = data
+    else
+        FarmDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
+    end
 end
+
 
 -- ==========================================
 -- 3. บันทึกข้อมูลทั้งหมด (เรียกตอน Auto-Save หรือปิดเซิร์ฟเวอร์ฟาร์ม)

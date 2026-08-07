@@ -36,8 +36,7 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         accessCode = sessionData[placeKey]
 
         if not accessCode then
-            -- 🌟 แก้จาก ReserveServerAsync เป็น ReserveServer ให้ถูกต้องตาม Roblox API
-            accessCode = TeleportService:ReserveServer(targetPlaceId)
+            accessCode = TeleportService:ReserveServeAsync(targetPlaceId)
             sessionData[placeKey] = accessCode
             activeSessions:SetAsync(sessionId, sessionData, 86400)
             print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " .. targetPlaceId)
@@ -46,8 +45,7 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         end
     else
         warn("ไม่พบข้อมูล Session กำลังสร้างใหม่...")
-        -- 🌟 แก้จาก ReserveServerAsync เป็น ReserveServer ให้ถูกต้องตาม Roblox API
-        accessCode = TeleportService:ReserveServer(targetPlaceId)
+        accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
         local newData = { HostId = hostId, [placeKey] = accessCode }
         activeSessions:SetAsync(sessionId, newData, 86400)
     end
@@ -98,8 +96,7 @@ Players.PlayerAdded:Connect(function(player)
             FarmDataManager.LoadWorldData(hostId, saveSlot)
         end
 
-        -- 🎒 โหลดกระเป๋าผู้เล่นคนนั้นๆ
-        FarmDataManager.LoadPlayerData(player)
+        FarmDataManager.LoadPlayerData(player,hostId, saveSlot)
         print("🎒 โหลดข้อมูลผู้เล่น " .. player.Name .. " เข้าสู่ฟาร์มพร้อมเล่น!")
 
     else

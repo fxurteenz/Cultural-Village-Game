@@ -58,6 +58,12 @@ function CityDataManager.LoadPlayerData(player, hostId, saveSlot)
     local success, data = pcall(function() return GameSaveDS:GetAsync(playerKey) end)
 
     if success and data then
+        data.quests = data.quests or {}
+        data.quests.active = data.quests.active or {}
+        data.quests.completed = data.quests.completed or {}
+        data.player_items = data.player_items or {}
+        data.coins = data.coins or 500
+
         CityDataManager.PlayersData[player.UserId] = data
     else
         CityDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
