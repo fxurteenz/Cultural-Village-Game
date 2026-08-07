@@ -19,7 +19,13 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     print(player.Name .. " กำลังจะวาร์ปออกจากฟาร์มไปที่ Place: " .. targetPlaceId)
 
     -- เซฟข้อมูลเฉพาะผู้เล่นคนที่จะวาร์ปออกก่อน
-    FarmDataManager.SaveSinglePlayer(player)
+    local saveSuccess = FarmDataManager.SaveSinglePlayer(player)
+    while not saveSuccess do
+        warn("⚠️ คำเตือน: เซฟข้อมูลไม่สำเร็จ แต่ระบบจะดำเนินการวาร์ปต่อ...")
+        task.wait(1) -- เผื่อเวลาให้ระบบลองใหม่ชั่วคราว
+        saveSuccess = FarmDataManager.SaveSinglePlayer(player)
+    end
+    FarmDataManager.SaveWorldData()
 
     local hostId = FarmDataManager.HostId
     local saveSlot = FarmDataManager.SaveSlot
