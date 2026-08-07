@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
@@ -13,6 +14,8 @@ local DayValue = GameTimeData:WaitForChild("Day")
 local SeasonValue = GameTimeData:WaitForChild("Season")
 local YearValue = GameTimeData:WaitForChild("Year")
 local SleepEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("SleepEvent")
+local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
+local BindableQuestEvent = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("QuestFunction")
 
 -- ==========================================
 -- รอข้อมูล WorldData จาก DataManager
@@ -21,7 +24,8 @@ print("[TimeSystem] กำลังรอข้อมูล WorldData จาก 
 while not DataManager.WorldData do
     task.wait(0.5)
 end
-print("[TimeSystem] ได้รับข้อมูล WorldData แล้ว! เริ่มระบบเวลา...")
+print(
+    "[TimeSystem] ได้รับข้อมูล WorldData แล้ว! เริ่มระบบเวลา...")
 
 -- 🌟 อ้างอิงไปยัง WorldData.time ของแมพฟาร์มโดยตรง
 local saveTimeData = DataManager.WorldData.time
@@ -41,7 +45,7 @@ local REAL_SECONDS_PER_GAME_MINUTE = 2
 local PASS_OUT_HOUR = 2
 local MAX_DAYS_PER_SEASON = 30
 
-local HOME_SPAWN_LOCATION = CFrame.new(0, 5, 0) 
+local HOME_SPAWN_LOCATION = CFrame.new(0, 5, 0)
 
 -- ==========================================
 -- ฟังก์ชันจัดการแสงและเวลา
@@ -63,15 +67,15 @@ end
 local function startNewDay()
     currentHour = 7
     currentMinute = 0
-    currentDay += 1
+    currentDay = currentDay + 1
 
     if currentDay > MAX_DAYS_PER_SEASON then
         currentDay = 1
-        currentSeason += 1
+        currentSeason = currentSeason + 1
 
         if currentSeason > 4 then
             currentSeason = 1
-            currentYear += 1
+            currentYear = currentYear + 1
             YearValue.Value = currentYear
         end
         SeasonValue.Value = currentSeason
@@ -96,6 +100,23 @@ local function passOutPlayers()
     end
 end
 
+local function sleepQuestsControl(player)
+    local activeQuest = DataManager.PlayersData[player.UserId].quests.active
+    local completedQuest = DataManager.PlayersData[player.UserId].quests.completed
+
+    if activeQuest then
+        if activeQuest["QT001"] then
+            local result = BindableQuestEvent:Invoke(player, "QT001", 1, "submit")
+            if result then
+                BindableQuestEvent:Invoke(player, "QT002", 1, "accept")
+            end
+        end
+    end
+
+    -- if completedQuest then
+
+    -- end
+end
 -- ==========================================
 -- ลูปการทำงานหลัก (Main Time Loop)
 -- ==========================================
@@ -116,11 +137,11 @@ task.spawn(function()
         task.wait(REAL_SECONDS_PER_GAME_MINUTE)
 
         if not isTimePaused then
-            currentMinute += 10 
+            currentMinute = currentMinute + 10
 
             if currentMinute >= 60 then
                 currentMinute = 0
-                currentHour += 1
+                currentHour = currentHour + 1
 
                 if currentHour >= 24 then
                     currentHour = 0
@@ -176,10 +197,13 @@ end)
 -- Event การนอนหลับ (Sleep Event)
 -- ==========================================
 SleepEvent.OnServerEvent:Connect(function(player)
-    if isTimePaused then return end
+    if isTimePaused then
+        return
+    end
 
     isTimePaused = true
     SleepEvent:FireClient(player, true)
+    sleepQuestsControl(player)
 
     task.wait(3)
 
