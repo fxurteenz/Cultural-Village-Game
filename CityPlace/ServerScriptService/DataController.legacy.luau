@@ -90,6 +90,10 @@ Players.PlayerAdded:Connect(function(player)
 	if teleportData and teleportData.HostId and teleportData.SaveSlot then
 		local hostId = teleportData.HostId
 		local saveSlot = teleportData.SaveSlot
+        
+        if not CityDataManager.WorldData then
+            CityDataManager.LoadWorldData(hostId, saveSlot)
+        end
 
 		-- 🎒 โหลดเฉพาะกระเป๋าผู้เล่นคนนั้นๆ (ไม่โหลด World Data)
 		CityDataManager.LoadPlayerData(player, hostId, saveSlot)
@@ -116,7 +120,7 @@ game:BindToClose(function()
 	if CityDataManager.HostId then
 		-- 1. อัปเดตแมพล่าสุดลงหน้าปกเซฟ เพื่อให้หน้า Main Menu รู้ว่าเซฟไว้ที่เมือง
 		CityDataManager.UpdateMenuInfo()
-
+        CityDataManager.SaveWorldData()
 		-- 2. วนลูปเซฟข้อมูลผู้เล่นทุกคนที่ยังติดอยู่ในแมพเมือง
 		for _, player in ipairs(Players:GetPlayers()) do
 			CityDataManager.SaveSinglePlayer(player)

@@ -1,15 +1,13 @@
 local FarmDataManager = {}
 local DataStoreService = game:GetService("DataStoreService")
 
--- ⚠️ ใช้ชื่อ DataStore ตัวเดียวกันกับ CityDataManager และหน้า Main Menu
 local GameSaveDS = DataStoreService:GetDataStore("FarmingGame_Data_V2")
 
 FarmDataManager.HostId = nil
 FarmDataManager.SaveSlot = nil
 
-FarmDataManager.WorldData = nil -- เก็บข้อมูลฟาร์ม (แปลงผัก, เวลา)
-FarmDataManager.PlayersData = {} -- เก็บข้อมูลกระเป๋าและเควสแยกรายบุคคล
-
+FarmDataManager.WorldData = nil
+FarmDataManager.PlayersData = {}
 -- ==========================================
 -- โครงสร้างข้อมูลเริ่มต้น (เมื่อเริ่มเกมใหม่)
 -- ==========================================
@@ -70,8 +68,14 @@ function FarmDataManager.LoadPlayerData(player)
 	end)
 	
 	if success and data then
+		data.quests = data.quests or {}
+		data.quests.active = data.quests.active or {}
+		data.quests.completed = data.quests.completed or {}
+		data.player_items = data.player_items or {}
+		data.coins = data.coins or 500
+		
 		FarmDataManager.PlayersData[player.UserId] = data
-		print("🎒 โหลดกระเป๋าผู้เล่นสำเร็จ: " .. player.Name)
+		print("🎒 โหลดกระเป๋าผู้เล่นสำเร็จ (และอัปเกรดโครงสร้างเซฟให้แล้ว): " .. player.Name)
 	else
 		FarmDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
 		print("✨ สร้างกระเป๋าเริ่มต้นใหม่ให้: " .. player.Name)
@@ -83,17 +87,17 @@ end
 -- ==========================================
 function FarmDataManager.SaveAllData()
 	if not FarmDataManager.WorldData or not FarmDataManager.HostId then return end
-	
+
 	-- 3.1 บันทึก World Data (แปลงผัก)
 	local worldKey = FarmDataManager.HostId .. "_" .. FarmDataManager.SaveSlot .. "_World"
 	pcall(function() GameSaveDS:SetAsync(worldKey, FarmDataManager.WorldData) end)
-	
+
 	-- 3.2 บันทึก Player Data ของทุกคนที่ยืนอยู่ในฟาร์มตอนนี้
 	for userId, pData in pairs(FarmDataManager.PlayersData) do
 		local playerKey = FarmDataManager.HostId .. "_" .. FarmDataManager.SaveSlot .. "_" .. tostring(userId)
 		pcall(function() GameSaveDS:SetAsync(playerKey, pData) end)
 	end
-	
+
 	-- 3.3 อัปเดตหน้าปกเซฟ (เพื่อให้ Main Menu รู้ว่าโฮสต์อยู่ฟาร์ม)
 	local menuInfoKey = FarmDataManager.HostId .. "_MenuInfo"
 	pcall(function()
@@ -105,7 +109,7 @@ function FarmDataManager.SaveAllData()
 			return saves
 		end)
 	end)
-	
+
 	print("💾 เซฟข้อมูลฟาร์มทั้งหมดสำเร็จ!")
 end
 
