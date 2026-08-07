@@ -1,11 +1,13 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+
 local TeleportService = game:GetService("TeleportService")
 local MemoryStoreService = game:GetService("MemoryStoreService")
 
 local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("TeleportEvent")
-
+local TeleportFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("TeleportFunction")
 local FarmDataManager = require(script.Parent:WaitForChild("FarmDataManager"))
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
@@ -41,7 +43,7 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         accessCode = sessionData[placeKey]
 
         if not accessCode then
-            accessCode = TeleportService:ReserveServeAsync(targetPlaceId)
+            accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
             sessionData[placeKey] = accessCode
             activeSessions:SetAsync(sessionId, sessionData, 86400)
             print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " .. targetPlaceId)
@@ -72,6 +74,10 @@ end
 TeleportEvent.OnServerEvent:Connect(function(player, targetPlaceId)
     TeleportPlayerToPlace(player, targetPlaceId)
 end)
+
+TeleportFunction.OnInvoke = function(player, targetPlaceId)
+    TeleportPlayerToPlace(player, targetPlaceId)
+end
 
 -- ==========================================
 -- 2. ระบบรับผู้เล่นเข้าเซิร์ฟเวอร์ฟาร์ม
