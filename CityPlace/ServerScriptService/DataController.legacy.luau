@@ -18,14 +18,10 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         return
     end
 
-    print(
-        player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " ..
-            targetPlaceId)
+    print(player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " .. targetPlaceId)
 
     local saveSuccess = CityDataManager.SaveSinglePlayer(player)
     while not saveSuccess do
-        warn(
-            "⚠️ คำเตือน: เซฟข้อมูลไม่สำเร็จ แต่ระบบจะดำเนินการวาร์ปต่อ...")
         task.wait(1) -- เผื่อเวลาให้ระบบลองใหม่ชั่วคราว
         saveSuccess = CityDataManager.SaveSinglePlayer(player)
     end
@@ -112,8 +108,7 @@ Players.PlayerAdded:Connect(function(player)
         end
 
         CityDataManager.LoadPlayerData(player, hostId, saveSlot)
-        print("🎒 โหลดกระเป๋าผู้เล่น " .. player.Name ..
-                  " เข้าสู่เมืองพร้อมเล่น!")
+        print("🎒 โหลดกระเป๋าผู้เล่น " .. player.Name .. " เข้าสู่เมืองพร้อมเล่น!")
 
     else
         warn(player.Name .. " ไม่พบ TeleportData สำหรับการโหลดเซฟ")

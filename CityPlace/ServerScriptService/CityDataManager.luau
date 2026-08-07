@@ -36,9 +36,6 @@ local function getDefaultPlayerData(playerName)
     }
 end
 
--- ==========================================
--- 🌟 2. เพิ่มฟังก์ชันโหลดข้อมูลโลกในเมือง
--- ==========================================
 function CityDataManager.LoadWorldData(hostId, saveSlot)
     CityDataManager.HostId = tostring(hostId)
     CityDataManager.SaveSlot = saveSlot
@@ -139,6 +136,9 @@ function CityDataManager.UpdateMenuInfo()
             local saves = oldData or {}
             if saves[CityDataManager.SaveSlot] then
                 saves[CityDataManager.SaveSlot].last_place_id = game.PlaceId
+                saves[CityDataManager.SaveSlot].day = CityDataManager.WorldData.time.day
+                saves[CityDataManager.SaveSlot].season = CityDataManager.WorldData.time.season
+                saves[CityDataManager.SaveSlot].year = CityDataManager.WorldData.time.year
             end
             return saves
         end)
