@@ -30,31 +30,7 @@ local QuestData = {
             Exp = 50
         }
     },
-    ["Q001"] = {
-        Name = "พูดคุยกับชาวบ้าน",
-        Description = "สำรวจและพูดคุยกับชาวบ้านตามที่ต่างๆในหมู่บ้าน",
-        location = "หมู่บ้าน",
-        TargetAmount = 5,
-        Target = {
-            AuntySomporn = false,
-            Mali = false
 
-        },
-        Rewards = {
-            Coins = 100,
-            Exp = 50
-        }
-    },
-    ["Q002"] = {
-        Name = "ไปที่แปลงปลูกข้าวอินทรีย์",
-        Description = "คุยกับน้าสมพรที่แปลงปลุกข้าวอินทรีย์",
-        location = "แปลงปลูกข้าวอินทรีย์",
-        TargetAmount = 1,
-        Rewards = {
-            Coins = 100,
-            Exp = 50
-        }
-    },
     ["Q003"] = {
         Name = "ทดลองปลูกข้าว",
         Description = "ปลูกข้าวที่แปลงปลูกข้าวอินทรีย์",
@@ -88,18 +64,7 @@ local QuestData = {
             Exp = 50
         }
     },
-    ["Q006"] = {
-        -- ยังไม่รู้ว่าจะรับเควสนี้ที่ไหนตอนไหน
-        Name = "ฟังประวัติหมู่บ้าน",
-        Description = "ไปฟังประวัติหมู่บ้านกับตาอิน",
-        location = "ศาลาหมู่บ้าน",
-        TargetAmount = 1,
-        ReadyToSubmitMessage = "...",
-        Rewards = {
-            Coins = 100,
-            Exp = 50
-        }
-    },
+
     ["T001"] = {
         Name = "พูดคุยกับชาวบ้าน",
         Description = "สำรวจและพูดคุยกับชาวบ้านตามสถานที่ต่างๆในหมู่บ้าน",
