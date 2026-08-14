@@ -5,17 +5,24 @@ local tweenService = game:GetService("TweenService")
 local runService = game:GetService('RunService')
 local userInputService = game:GetService('UserInputService')
 local collectionService = game:GetService("CollectionService")
+local ContextActionService = game:GetService("ContextActionService")
 
 -- ตรวจสอบ Sound (เผื่อไม่มีไฟล์เสียง)
 local TICK_SOUND = script:FindFirstChild("sounds") and script.sounds:FindFirstChild("tick")
 local END_TICK_SOUND = script:FindFirstChild("sounds") and script.sounds:FindFirstChild("tick2")
 local DIALOG_RESPONSES_UI = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Dialog"):WaitForChild("DialogResponses")
+DialogModule.isPlayerInDialog = false -- State กลางสำหรับเช็คว่าผู้เล่นกำลังคุยอยู่หรือไม่
+local DIALOG_ACTION = "DialogMovementLock"
 
 local NOTI = {
 	["orange"] = "118398951376939",
 	["blue"] = "122925822331176",
 	["green"] = "98764479101822",
 }
+
+local function lockControls()
+	ContextActionService:BindAction(DIALOG_ACTION, function() return Enum.ContextActionResult.Sink end, false, unpack(Enum.PlayerActions:GetEnumItems()))
+end
 
 function DialogModule.new(npcName, npc, prompt, animation)
 	local self = setmetatable({}, DialogModule)
@@ -127,6 +134,9 @@ function DialogModule:triggerDialog(player, dialogId)
 	self:stopCurrentTask()
 	self:showGui()
 	self.active = true
+	
+	DialogModule.isPlayerInDialog = true
+	lockControls()
 
 	if not self.distanceConnection then
 		self.distanceConnection = runService.Heartbeat:Connect(function()
@@ -221,7 +231,7 @@ function DialogModule:triggerDialog(player, dialogId)
 			local optionUI = DIALOG_RESPONSES_UI:FindFirstChild(tostring(i))
 			if not optionUI then continue end
 
-			optionUI.text.Text = "<font color='rgb(255,220,127)'>" .. i .. ".)</font> ''" .. response.text .. "''"
+			optionUI.text.Text = "<font color='rgb(255,220,127)'>" .. i .. ".)</font> " .. response.text
 			optionUI.Size = UDim2.fromScale(optionUI.Size.X.Scale, .4)
 			optionUI.text.Position = UDim2.new(0.02, 0, 0.5, 0)
 			optionUI.Visible = true
@@ -301,6 +311,9 @@ end
 function DialogModule:hideGui()
 	self.active = false
 	self:stopCurrentTask()
+
+	DialogModule.isPlayerInDialog = false
+	ContextActionService:UnbindAction(DIALOG_ACTION)
 
 	self:togglePrompts(true)
 
