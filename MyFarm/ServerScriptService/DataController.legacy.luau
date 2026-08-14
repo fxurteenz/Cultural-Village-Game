@@ -1,13 +1,14 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+
 local TeleportService = game:GetService("TeleportService")
 local MemoryStoreService = game:GetService("MemoryStoreService")
 
 local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("TeleportEvent")
-
-local CityDataManager = require(script.Parent:WaitForChild("CityDataManager"))
-local EconomyService = require(ReplicatedStorage.Module.EconomyService)
+local TeleportFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("TeleportFunction")
+local FarmDataManager = require(script.Parent:WaitForChild("FarmDataManager"))
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
 
@@ -15,21 +16,20 @@ local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
 -- 1. ฟังก์ชันสำหรับการวาร์ปผู้เล่นข้าม Place (แบบเดี่ยว)
 -- ==========================================
 local function TeleportPlayerToPlace(player, targetPlaceId)
-    if not CityDataManager.HostId then
-        return
-    end
+    if not FarmDataManager.HostId then return end
 
-    print(player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " .. targetPlaceId)
+    print(player.Name .. " กำลังจะวาร์ปออกจากฟาร์มไปที่ Place: " .. targetPlaceId)
 
-    local saveSuccess = CityDataManager.SaveSinglePlayer(player)
+    -- เซฟข้อมูลเฉพาะผู้เล่นคนที่จะวาร์ปออกก่อน
+    local saveSuccess = FarmDataManager.SaveSinglePlayer(player)
     while not saveSuccess do
         task.wait(1) -- เผื่อเวลาให้ระบบลองใหม่ชั่วคราว
-        saveSuccess = CityDataManager.SaveSinglePlayer(player)
+        saveSuccess = FarmDataManager.SaveSinglePlayer(player)
     end
-    CityDataManager.SaveWorldData()
+    FarmDataManager.SaveWorldData()
 
-    local hostId = CityDataManager.HostId
-    local saveSlot = CityDataManager.SaveSlot
+    local hostId = FarmDataManager.HostId
+    local saveSlot = FarmDataManager.SaveSlot
     local sessionId = tostring(hostId) .. "_" .. saveSlot
     local placeKey = "PlaceCode_" .. tostring(targetPlaceId)
 
@@ -46,19 +46,14 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
             accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
             sessionData[placeKey] = accessCode
             activeSessions:SetAsync(sessionId, sessionData, 86400)
-            print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " ..
-                      targetPlaceId)
+            print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " .. targetPlaceId)
         else
-            print(
-                "พบ ReserveServer เดิม กำลังส่งผู้เล่นไปเข้าร่วม...")
+            print("พบ ReserveServer เดิม กำลังส่งผู้เล่นไปเข้าร่วม...")
         end
     else
         warn("ไม่พบข้อมูล Session กำลังสร้างใหม่...")
         accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
-        local newData = {
-            HostId = hostId,
-            [placeKey] = accessCode
-        }
+        local newData = { HostId = hostId, [placeKey] = accessCode }
         activeSessions:SetAsync(sessionId, newData, 86400)
     end
 
@@ -80,8 +75,12 @@ TeleportEvent.OnServerEvent:Connect(function(player, targetPlaceId)
     TeleportPlayerToPlace(player, targetPlaceId)
 end)
 
+TeleportFunction.OnInvoke = function(player, targetPlaceId)
+    TeleportPlayerToPlace(player, targetPlaceId)
+end
+
 -- ==========================================
--- 2. ระบบรับผู้เล่นเข้าเซิร์ฟเวอร์เมือง
+-- 2. ระบบรับผู้เล่นเข้าเซิร์ฟเวอร์ฟาร์ม
 -- ==========================================
 Players.PlayerAdded:Connect(function(player)
     local joinData = player:GetJoinData()
@@ -91,7 +90,7 @@ Players.PlayerAdded:Connect(function(player)
     -- FOR TEST IN STUDIO
     -- ==========================================
     if RunService:IsStudio() and not teleportData then
-        print("🔧 [TESTING] จำลอง TeleportData สำหรับแมพเมือง...")
+        print("🔧 [TESTING] จำลอง TeleportData สำหรับแมพฟาร์ม...")
         teleportData = {
             HostId = player.UserId,
             SaveSlot = "save_slot1",
@@ -104,12 +103,12 @@ Players.PlayerAdded:Connect(function(player)
         local hostId = teleportData.HostId
         local saveSlot = teleportData.SaveSlot
 
-        if not CityDataManager.WorldData then
-            CityDataManager.LoadWorldData(hostId, saveSlot)
+        if not FarmDataManager.WorldData then
+            FarmDataManager.LoadWorldData(hostId, saveSlot)
         end
 
-        CityDataManager.LoadPlayerData(player, hostId, saveSlot)
-        print("🎒 โหลดกระเป๋าผู้เล่น " .. player.Name .. " เข้าสู่เมืองพร้อมเล่น!")
+        FarmDataManager.LoadPlayerData(player,hostId, saveSlot)
+        print("🎒 โหลดข้อมูลผู้เล่น " .. player.Name .. " เข้าสู่ฟาร์มพร้อมเล่น!")
 
     else
         warn(player.Name .. " ไม่พบ TeleportData สำหรับการโหลดเซฟ")
@@ -122,22 +121,15 @@ end)
 
 -- เมื่อมีผู้เล่นกดออกเกม (Leave) ให้เซฟเฉพาะข้อมูลคนนั้น
 Players.PlayerRemoving:Connect(function(player)
-    if CityDataManager.HostId then
-        CityDataManager.SaveSinglePlayer(player)
+    if FarmDataManager.HostId then
+        FarmDataManager.SaveSinglePlayer(player)
     end
 end)
 
--- บันทึกข้อมูลเมื่อเซิร์ฟเวอร์เมืองกำลังจะปิด
+-- บันทึกข้อมูลเมื่อเซิร์ฟเวอร์ฟาร์มกำลังจะปิด
 game:BindToClose(function()
-    if CityDataManager.HostId then
-        -- 1. อัปเดตแมพล่าสุดลงหน้าปกเซฟ เพื่อให้หน้า Main Menu รู้ว่าเซฟไว้ที่เมือง
-        CityDataManager.UpdateMenuInfo()
-        CityDataManager.SaveWorldData()
-        -- 2. วนลูปเซฟข้อมูลผู้เล่นทุกคนที่ยังติดอยู่ในแมพเมือง
-        for _, player in ipairs(Players:GetPlayers()) do
-            CityDataManager.SaveSinglePlayer(player)
-        end
-
+    if FarmDataManager.HostId then
+        FarmDataManager.SaveAllData()
         task.wait(2)
     end
 end)
