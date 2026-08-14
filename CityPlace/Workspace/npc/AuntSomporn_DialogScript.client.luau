@@ -4,9 +4,12 @@ local RunService = game:GetService("RunService")
 
 local Module = ReplicatedStorage:WaitForChild("Module")
 local DialogModule = require(Module:WaitForChild("DialogModule"))
+
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local GetQuestDataRF = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetQuestData")
 local GiveItemEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("GiveItemEvent")
+local SeedShopBindable = ReplicatedStorage:WaitForChild("BindableEvent"):WaitForChild("SeedShop") :: BindableEvent
+
 local player = game.Players.LocalPlayer
 local npc = script.Parent
 local prompt = npc:WaitForChild("ProximityPrompt")
@@ -17,21 +20,14 @@ local dialogObject = DialogModule.new("ป้าสมพร", npc, prompt)
 -- NPC Setting
 -- ==========================================
 local NPC_CONFIG = {
-	DefaultCompletedDialogId = 1, -- บทสนทนาเริ่มต้นหากทำเสร็จทุกเควสแล้ว
+	DefaultCompletedDialogId = 40, -- บทสนทนาเริ่มต้นหากทำเสร็จทุกเควสแล้ว
 	Quests = {
 		{
-			QuestID = "Q003",
+			QuestID = "Q001",
 			EnableAutoTrigger = false,
 			AcceptDialogId = 1,
 			InProgressDialogId = 10,
 			SubmitDialogId = 30
-		},
-		{
-			QuestID = "Q004",
-			EnableAutoTrigger = false,
-			AcceptDialogId = 34, -- Dialog node that accepts the quest
-			InProgressDialogId = 21,
-			SubmitDialogId = 1, -- Assuming there's a submit dialog, using default for now
 		},
 	}
 }
@@ -73,8 +69,8 @@ local dialogTree = {
 	[7] = {
 		text = "หนูเคยทำนามาก่อนไหมจ๊ะ",
 		responses = {
-            {text="ไม่เคยครับ/ค่ะคุณป้า", next=9},
-            {text="เคยครับ/ค่ะคุณป้า", next=19},
+            {text="ไม่เคยครับ/ค่ะคุณป้า", next=8},
+            -- {text="เคยครับ/ค่ะคุณป้า", next=8},
         }
 	},
 	[8] = {
@@ -102,7 +98,7 @@ local dialogTree = {
 				text = "ใช่ครับ/ค่ะ",
 				action = "submitQuest",
 				questId = "Q003",
-				next = 31, 
+				next = 31,
 			}
 		},
 	},
@@ -112,11 +108,11 @@ local dialogTree = {
 	},
 	[32] = {
 		text = "หลังจากดำนาแล้ว เราก็จะคอยดูแลต้นข้าว",
-		next = 32
+		next = 33
 	},
 	[33] = {
 		text = "เมื่อข้าวเป็นสีเหลืองทอง ก็จะถึงเวลาเก็บเกี่ยว",
-		next = 33
+		next = 34
 	},
 	[34] = {
 		text = "เอาล่ะ.. รับเคียวของป้าไปสิ", next = 35
@@ -242,7 +238,10 @@ dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseDa
 		QuestEvent:FireServer(responseData.questId, 0, "submit")
 	elseif responseData.action == "giveItem" then
 		GiveItemEvent:FireServer(responseData.itemName, responseData.amount)
-	end
+    elseif responseData.action == "openSeedShop" then
+		SeedShopBindable:Fire()
+		dialogObject:hideGui()
+    end
 end)
 
 dialogObject.nodeAction:Connect(function(dialogId, dialogData)

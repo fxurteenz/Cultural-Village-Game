@@ -1,10 +1,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SeedShopEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("SeedShopEvent")
+local ShopEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("ShopEvent")
+local SeedShopBindable = ReplicatedStorage:WaitForChild("BindableEvent"):WaitForChild("SeedShop")
+local EconomyService = require(ReplicatedStorage.Module.EconomyService)
 
 -- ==========================================
 -- 1. การตั้งค่าระบบจำลองเงินและอ้างอิง GUI
 -- ==========================================
-local simulatedPlayerMoney = 500 -- จำลองเงินเริ่มต้นของผู้เล่น
+local currentPlayerMoney = 0 -- จะถูกอัปเดตจาก EconomyService
 
 -- อ้างอิงไปยังตำแหน่งต่างๆ ของ GUI อิงตามภาพโครงสร้าง
 local gui = script.Parent
@@ -20,30 +22,13 @@ itemTemplate.Visible = false
 -- 2. สร้าง Table รายการไอเทม
 -- ==========================================
 local shopItems = {
-	{
-		Id = "sword_001",
-		Name = "ดาบไม้เริ่มต้น",
-		Price = 50,
-		ImageId = "rbxassetid://0" -- เปลี่ยนเลข 0 เป็น Asset ID รูปภาพของคุณ
-	},
-	{
-		Id = "potion_001",
-		Name = "น้ำยาฟื้นฟู (เล็ก)",
-		Price = 20,
+    {
+		Id = "RiceSprout",
+		Name = "ต้นกล้าข้าว",
+		Price = 5,
 		ImageId = "rbxassetid://0" 
 	},
-	{
-		Id = "shield_001",
-		Name = "โล่ไม้โอ๊ค",
-		Price = 100,
-		ImageId = "rbxassetid://0" 
-	},
-	{
-		Id = "shield_001",
-		Name = "โล่ไม้โอ๊ค",
-		Price = 100,
-		ImageId = "rbxassetid://0" 
-	}
+
 }
 
 -- ==========================================
@@ -64,36 +49,18 @@ local function generateShop()
 		newItemFrame:WaitForChild("ItemPrice").Text = tostring(itemData.Price) .. " Coins"
 		newItemFrame:WaitForChild("ItemImage").Image = itemData.ImageId
 		
-		-- ฟังก์ชันย่อยสำหรับจัดการการซื้อและคำนวณเงิน
-		local function buyItem(amount)
-			local totalCost = itemData.Price * amount
-			
-			print("-----------------------------------")
-			print("กำลังตรวจสอบการซื้อ: " .. itemData.Name .. " จำนวน " .. amount .. " ชิ้น")
-			
-			if simulatedPlayerMoney >= totalCost then
-				-- หักเงินจำลอง
-				simulatedPlayerMoney = simulatedPlayerMoney - totalCost
-				print("✅ ซื้อสำเร็จ! คุณจ่ายไป " .. totalCost .. " Coins")
-				print("💰 เงินจำลองคงเหลือ: " .. simulatedPlayerMoney .. " Coins")
-			else
-				print("❌ ซื้อไม่สำเร็จ! เงินไม่พอ (ต้องการ " .. totalCost .. " Coins แต่คุณมีแค่ " .. simulatedPlayerMoney .. " Coins)")
-			end
-			print("-----------------------------------")
+		-- ฟังก์ชันสำหรับส่งคำขอซื้อไปยังเซิร์ฟเวอร์
+		local function requestPurchase(itemId, amount)
+			print("🛒 ส่งคำขอซื้อ: " .. itemId .. " จำนวน " .. amount .. " ชิ้น")
+			ShopEvent:FireServer("PurchaseItem", itemId, amount)
 		end
 		
 		-- ผูกปุ่มเข้ากับฟังก์ชันย่อยข้างต้น
-		newItemFrame:WaitForChild("Buy_1").MouseButton1Click:Connect(function()
-			buyItem(1)
-		end)
+		newItemFrame:WaitForChild("Buy_1").MouseButton1Click:Connect(function() requestPurchase(itemData.Id, 1) end)
 		
-		newItemFrame:WaitForChild("Buy_2").MouseButton1Click:Connect(function()
-			buyItem(2)
-		end)
+		newItemFrame:WaitForChild("Buy_2").MouseButton1Click:Connect(function() requestPurchase(itemData.Id, 2) end)
 		
-		newItemFrame:WaitForChild("Buy_4").MouseButton1Click:Connect(function()
-			buyItem(4)
-		end)
+		newItemFrame:WaitForChild("Buy_4").MouseButton1Click:Connect(function() requestPurchase(itemData.Id, 4) end)
 	end
 end
 
@@ -102,9 +69,13 @@ end
 -- ==========================================
 task.spawn(generateShop)
 
-SeedShopEvent.OnClientEvent:Connect(function()
-    generateShop()
+SeedShopBindable.Event:Connect(function(action)
     frame.Visible = true
+end)
+
+-- รับการอัปเดตเงินจาก EconomyService
+EconomyService:ListenForCurrencyChanges(function(newBalance)
+    currentPlayerMoney = newBalance
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
