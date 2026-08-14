@@ -7,6 +7,7 @@ local MemoryStoreService = game:GetService("MemoryStoreService")
 local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("TeleportEvent")
 
 local CityDataManager = require(script.Parent:WaitForChild("CityDataManager"))
+local EconomyService = require(ReplicatedStorage.Module.EconomyService)
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
 

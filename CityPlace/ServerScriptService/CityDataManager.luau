@@ -1,5 +1,6 @@
 local CityDataManager = {}
 local DataStoreService = game:GetService("DataStoreService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameSaveDS = DataStoreService:GetDataStore("FarmingGame_Data_V2")
 
@@ -7,6 +8,7 @@ CityDataManager.HostId = nil
 CityDataManager.SaveSlot = nil
 CityDataManager.WorldData = nil
 CityDataManager.PlayersData = {}
+CityDataManager.PlayerLoaded = Instance.new("BindableEvent")
 
 local function getDefaultWorldData()
     return {
@@ -78,6 +80,8 @@ function CityDataManager.LoadPlayerData(player, hostId, saveSlot)
     else
         CityDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
     end
+
+    CityDataManager.PlayerLoaded:Fire(player)
 end
 
 function CityDataManager.SaveSinglePlayer(player)
