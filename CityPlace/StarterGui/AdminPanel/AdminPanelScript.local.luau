@@ -10,7 +10,7 @@ local questPage = mainFrame:WaitForChild("QuestEventTest")
 
 local player_id = tostring(Player.UserId)
 if player_id ~= "7597767503" then
-	adminPanel:Destroy()
+	mainFrame.Visible = true
 else
 	mainFrame.Visible = true
 end
