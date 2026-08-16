@@ -21,7 +21,9 @@ local NOTI = {
 }
 
 local function lockControls()
-	ContextActionService:BindAction(DIALOG_ACTION, function() return Enum.ContextActionResult.Sink end, false, unpack(Enum.PlayerActions:GetEnumItems()))
+	ContextActionService:BindAction(DIALOG_ACTION, function()
+        return Enum.ContextActionResult.Sink end, false, unpack(Enum.PlayerActions:GetEnumItems())
+    )
 end
 
 function DialogModule.new(npcName, npc, prompt, animation)
