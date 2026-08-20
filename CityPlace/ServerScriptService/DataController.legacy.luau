@@ -20,23 +20,22 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         return
     end
 
-    LoadingEvent:FireClient(player,true,"กำลังไปที่ไร่...")
+    LoadingEvent:FireClient(player,true,"กำลังเตรียมข้อมูล.")
     print(player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " .. targetPlaceId)
 
     task.wait(0.2)
 
-    LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล.")
+    LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล..")
     local saveSuccess = CityDataManager.SaveSinglePlayer(player)
-
+    print("[save single player result] : ",saveSuccess)
     while not saveSuccess do
-
         task.wait(1)
-
         saveSuccess = CityDataManager.SaveSinglePlayer(player)
-		LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล..")
+		LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล...")
     end
 
-	LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล...")
+	LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล.")
+
     CityDataManager.SaveWorldData()
 	LoadingEvent:FireClient(player, true,"กำลังค้นหาเซิฟเวอร์ปลายทาง...")
 
@@ -96,7 +95,7 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         LoadingEvent:FireClient(player, false)
         return false
     end
-    task.wait(3)
+    task.wait(1)
     LoadingEvent:FireClient(player, false)
     return true
 end
