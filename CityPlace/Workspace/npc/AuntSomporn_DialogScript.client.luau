@@ -20,7 +20,7 @@ local dialogObject = DialogModule.new("ป้าสมพร", npc, prompt)
 -- NPC Setting
 -- ==========================================
 local NPC_CONFIG = {
-    DefaultCompletedDialogId = 40, -- บทสนทนาเมนูทางเลือก (คุย/ร้านค้า)
+    DefaultCompletedDialogId = 40,
     Quests = {
         {
            QuestID = "QT003",
@@ -32,18 +32,16 @@ local NPC_CONFIG = {
         },
         {
             QuestID = "Q001",
-            EnableAutoTrigger = false, -- เดินเข้าไปใกล้แล้วคุยอัตโนมัติไหม?
-            SkipMenu = false,          -- ถ้าเดินมากด E เอง จะให้เข้าเควสเลย(true) หรือแวะหน้าเมนูก่อน(false)?
+            EnableAutoTrigger = false,
+            SkipMenu = true,
             AcceptDialogId = 1,
             InProgressDialogId = 10,
             SubmitDialogId = 30
         },
-        
     }
 }
 
 local dialogTree = {
-    -- [บทสนทนาเควสละไว้เหมือนเดิม เพื่อความกระชับ]
     [1] = { 
         text = "....",
         responses = {
@@ -86,7 +84,7 @@ local dialogTree = {
     [8] = {
         text = "ที่นี่มีแปลงสาธิตอยู่ หนูอยากลองดำนาดูมั้ยล่ะ?",
         responses = {
-            {text="อยากครับ/ค่ะคุณป้า", next=9, action="acceptQuest", questId="Q003"}
+            {text="อยากครับ/ค่ะคุณป้า", next=9, action="acceptQuest", questId="Q001"}
         }
     },
     [9] = {
@@ -97,6 +95,7 @@ local dialogTree = {
         delay = 1.5,
         next = 10
     },
+
     [10] = {
         text = "เอาต้นกล้าไปดำนาแล้วกลับมาหาป้านะ",
         delay=1.6
@@ -113,11 +112,12 @@ local dialogTree = {
          next = 32
         },
     [32] = { 
-        text = "หลังจากดำนาแล้ว เราก็จะคอยดูแลต้นข้าว",
-        next = 33
+        text = "หลังจากนี้ก็แค่หมั่นดูแลต้นข้าว ไม่ให้ป่วย หรือมีแมลงศัตรูพืช",
+        next = 33,
+        delay = 1.5
     },
     [33] = { 
-        text = "เมื่อข้าวเป็นสีเหลืองทอง ก็จะถึงเวลาเก็บเกี่ยว",
+        text = "และเมื่อข้าวเป็นสีเหลืองทอง ก็จะถึงเวลาเก็บเกี่ยว",
         next = 34
     },
     [34] = { 
@@ -131,13 +131,9 @@ local dialogTree = {
         }
     },
     [36] = { 
-        text ="แล้วก็เกือบลืมแหนะ...",
+		text ="แล้วก็ถ้าอยากได้ต้นกล้าหรือเมล็ดพันธุ์ล่ะก็ มาหาป้าได้เลยนะ",
         delay=1.5
      },
-    [37] = {
-        text ="ถ้าอยากได้ต้นกล้าหรือเมล็ดพันธุ์ มาหาป้าได้เลยนะ",
-        delay=1.5
-    },
 
 
     [40] = {
@@ -244,8 +240,6 @@ local function UpdateQuestState()
             dialogObject:ToggleQuestNoti(true, "submit")
         end
 
-        -- จัดการ Auto Trigger (ถ้าตั้งค่าไว้ และอยู่ในช่วงรับเควส)
-        -- *ปรับแต่งได้: ถ้าอยากให้ AutoTrigger ตอนส่งเควสด้วย ให้เอาเงื่อนไข state == "accept" ออก
         if questConfig.EnableAutoTrigger and state == "accept" then
             StartAutoTrigger(targetDialogId)
         else
