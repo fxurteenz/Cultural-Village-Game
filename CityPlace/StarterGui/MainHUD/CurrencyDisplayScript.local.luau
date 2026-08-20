@@ -33,7 +33,7 @@ end
 -- ฟังก์ชันที่จะถูกเรียกใช้ทุกครั้งที่ค่าเงินมีการเปลี่ยนแปลง
 local function onCurrencyChanged(newBalance)
     if currencyLabel then
-        currencyLabel.Text = "💰 " .. formatCurrency(newBalance)
+        currencyLabel.Text = formatCurrency(newBalance) .. " G"
     end
 end
 

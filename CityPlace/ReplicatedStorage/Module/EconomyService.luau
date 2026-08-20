@@ -5,10 +5,25 @@ local RunService = game:GetService("RunService")
 
 local EconomyService = {}
 
-local currencyChangedEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("CurrencyChangedEvent")
 local getBalanceFunction = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetBalanceFunction")
+local currencyChangedEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("CurrencyChangedEvent")
 
-local dataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
+local dataManager = nil
+
+-- Function to get the correct data manager based on the current place
+local function getDataManager()
+    if dataManager then
+        return dataManager
+    end
+    
+    dataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
+
+    if not dataManager then
+        warn("EconomyService: Could not find a valid DataManager for this place.")
+    end
+
+    return dataManager
+end
 
 -- ##################################################################
 -- SERVER-SIDE FUNCTIONS
@@ -18,24 +33,26 @@ if RunService:IsServer() then
     -- Set up the RemoteFunction handler
     -- This function will now wait until the player's data is loaded before returning a value.
     getBalanceFunction.OnServerInvoke = function(player)
-        if not dataManager then return 0 end
+        local manager = getDataManager()
+        if not manager then return 0 end
 
         -- Check if data is already loaded
-        if dataManager.PlayersData and dataManager.PlayersData[player.UserId] then
-            return dataManager.PlayersData[player.UserId].coins or 0
+        if manager.PlayersData and manager.PlayersData[player.UserId] then
+            return manager.PlayersData[player.UserId].coins or 0
         end
 
-        -- If not loaded, wait for the PlayerLoaded signal from the DatadataManager
-        dataManager.PlayerLoaded.Event:Wait()
+        -- If not loaded, wait for the PlayerLoaded signal from the DataManager
+        manager.PlayerLoaded.Event:Wait()
         return EconomyService:GetBalance(player) -- Now the data should be available
     end
 
     -- Get player's data from the loaded data manager cache
     local function getPlayerData(player)
-        if not dataManager or not dataManager.PlayersData then
+        local manager = getDataManager()
+        if not manager or not manager.PlayersData then
             return nil
         end
-        return dataManager.PlayersData[player.UserId]
+        return manager.PlayersData[player.UserId]
     end
     
     -- Function to get the current balance of a player
@@ -102,7 +119,7 @@ if RunService:IsClient() then
             warn("EconomyService:ListenForCurrencyChanges requires a function as an argument.")
             return
         end
-        
+
         -- Connect the callback to the remote event
         currencyChangedEvent.OnClientEvent:Connect(callback)
     end
