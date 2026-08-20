@@ -42,6 +42,8 @@ local QuestData = {
             Exp = 50
         }
     },
+
+    -- NOT TESTED
     ["Q003"] = {
         Name = "เก็บเกี่ยวข้าว",
         Description = "เก็บเกี่ยวผลผลิตจากข้าว",
@@ -53,7 +55,7 @@ local QuestData = {
             Exp = 50
         }
 	},
-	
+
     --["Q005"] = {
     --    Name = "ไปนั่งกี่ทอผ้า",
     --    Description = "ทดลองทอผ้า",
