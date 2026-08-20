@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ServerStorage = game:GetService("ServerStorage")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -11,7 +12,29 @@ local ClockTime = GameTimeData:WaitForChild("ClockTime")
 local DayValue = GameTimeData:WaitForChild("Day")
 local SeasonValue = GameTimeData:WaitForChild("Season")
 local YearValue = GameTimeData:WaitForChild("Year")
+
 local SleepEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("SleepEvent")
+local SpecialEventTrigger = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("SpecialEventFunction")
+-- ==========================================
+-- [ระบบใหม่] ข้อมูล Event Calendar
+-- ==========================================
+local SeasonKeys = {
+    [1] = "RN", -- สมมติว่าฤดู 1 คือ Summer
+    [2] = "WT", -- ฤดู 2 คือ Rainy
+    [3] = "SM"  -- ฤดู 3 คือ Winter
+}
+
+local EventCalendar = {
+    RN = {
+        [5] = { -- วันที่ 5 ของฤดูฝน
+            eventName = "ฝูงนกกระเรียนลงนา",
+            eventId = "CRANE_VISIT",
+            questId = "Q_CRANE_001"
+        }
+    },
+    WT = {},
+    SM = {},
+}
 
 -- ==========================================
 -- รอข้อมูล WorldData จาก DataManager
@@ -35,8 +58,40 @@ local isTimePaused = false
 local REAL_SECONDS_PER_GAME_MINUTE = 2
 local PASS_OUT_HOUR = 2
 local MAX_DAYS_PER_SEASON = 30
+local MAX_SEASONS = 3 -- ปรับเป็น 3 ฤดูตามที่คุณต้องการ
 
 local HOME_SPAWN_LOCATION = CFrame.new(0, 5, 0) 
+
+-- ==========================================
+-- [ระบบใหม่] ฟังก์ชันตรวจสอบเหตุการณ์พิเศษประจำวัน
+-- ==========================================
+local function checkSpecialEvent(seasonNum, dayNum)
+    local seasonKey = SeasonKeys[seasonNum]
+    if not seasonKey then return end
+
+    local todayEvent = EventCalendar[seasonKey][dayNum]
+    if todayEvent then
+        print(string.format("[EventSystem] วันนี้มีเหตุการณ์พิเศษ: %s (EventID: %s)", todayEvent.eventName, todayEvent.eventId))
+        
+        -- ถ้าเป็นอีเวนท์นกกระเรียน
+        if todayEvent.eventId == "CRANE_VISIT" then
+            -- กำหนดพิกัดที่แปลงนาและชื่อแอนิเมชั่นที่ต้องการส่งไปให้ระบบนกกระเรียน
+            local riceFieldPosition = Vector3.new(364.141, 63, 251.512) 
+            local animationToPlay = "idle"
+
+            -- ใช้ pcall เพื่อป้องกันโค้ด TimeSystem พัง หากระบบนกกระเรียนยังไม่พร้อม
+            local success, response = pcall(function()
+                return SpecialEventTrigger:Invoke(todayEvent.eventId, riceFieldPosition, animationToPlay, todayEvent.questId)
+            end)
+
+            if success then
+                print("[EventSystem] แจ้งระบบนกกระเรียนสำเร็จ:", response)
+            else
+                warn("[EventSystem] ไม่สามารถแจ้งระบบนกกระเรียนได้:", response)
+            end
+        end
+    end
+end
 
 -- ==========================================
 -- ฟังก์ชันจัดการแสงและเวลา
@@ -64,7 +119,7 @@ local function startNewDay()
         currentDay = 1
         currentSeason += 1
 
-        if currentSeason > 4 then
+        if currentSeason > MAX_SEASONS then -- ใช้ MAX_SEASONS = 3
             currentSeason = 1
             currentYear += 1
             YearValue.Value = currentYear
@@ -74,11 +129,14 @@ local function startNewDay()
 
     DayValue.Value = currentDay
 
-    -- [อัปเดตลงเซฟ] เมื่อเริ่มวันใหม่
+    -- [อัปเดตลงเซฟ]
     saveTimeData.clock_time = currentHour
     saveTimeData.day = currentDay
     saveTimeData.season = currentSeason
     saveTimeData.year = currentYear
+
+    -- เช็ค Event ประจำวันหลังขึ้นวันใหม่
+    checkSpecialEvent(currentSeason, currentDay)
 end
 
 local function passOutPlayers()
@@ -95,17 +153,18 @@ end
 -- ลูปการทำงานหลัก (Main Time Loop)
 -- ==========================================
 task.spawn(function()
-    -- ตั้งค่า Value เริ่มต้นให้ Client เห็นตรงกับเซฟ
     DayValue.Value = currentDay
     SeasonValue.Value = currentSeason
     YearValue.Value = currentYear
     ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
 
-    -- ปรับแสงของแมพครั้งแรกตอนโหลดเซฟเสร็จ
     Lighting.ClockTime = currentHour
     local initAmbient, initColorShift = getLightingColors(currentHour)
     Lighting.OutdoorAmbient = initAmbient
     Lighting.ColorShift_Top = initColorShift
+
+    -- เช็ค Event ทันทีที่โหลดเกมเสร็จ (กรณีโหลดเซฟมาตรงกับวันที่มี Event พอดี)
+    checkSpecialEvent(currentSeason, currentDay)
 
     while true do
         task.wait(REAL_SECONDS_PER_GAME_MINUTE)
@@ -121,7 +180,6 @@ task.spawn(function()
                     currentHour = 0
                 end
 
-                -- [อัปเดตลงเซฟ] ทุกครั้งที่ชั่วโมงเปลี่ยน
                 saveTimeData.clock_time = currentHour
             end
 
@@ -167,17 +225,12 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- Event การนอนหลับ (Sleep Event)
--- ==========================================
 SleepEvent.OnServerEvent:Connect(function(player)
     if isTimePaused then return end
-
     isTimePaused = true
     SleepEvent:FireClient(player, true)
 
     task.wait(3)
-
     startNewDay()
 
     ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
