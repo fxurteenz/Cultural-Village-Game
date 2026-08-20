@@ -5,50 +5,10 @@ local RunService = game:GetService("RunService")
 
 local EconomyService = {}
 
-local remoteFolder = ReplicatedStorage:WaitForChild("RemoteEvent")
-local currencyChangedEvent
-local getBalanceFunction
+local currencyChangedEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("CurrencyChangedEvent")
+local getBalanceFunction = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetBalanceFunction")
 
-if RunService:IsServer() then
-    currencyChangedEvent = remoteFolder:FindFirstChild("CurrencyChangedEvent") or Instance.new("RemoteEvent")
-    currencyChangedEvent.Name = "CurrencyChangedEvent"
-    currencyChangedEvent.Parent = remoteFolder
-
-    getBalanceFunction = remoteFolder:FindFirstChild("GetBalanceFunction") or Instance.new("RemoteFunction")
-    getBalanceFunction.Name = "GetBalanceFunction"
-    getBalanceFunction.Parent = remoteFolder
-else
-    currencyChangedEvent = remoteFolder:WaitForChild("CurrencyChangedEvent")
-    getBalanceFunction = remoteFolder:WaitForChild("GetBalanceFunction")
-end
-
-local dataManager = nil
-
--- Function to get the correct data manager based on the current place
-local function getDataManager()
-    if dataManager then
-        return dataManager
-    end
-
-    -- Check which place we are in and require the corresponding manager
-    -- This makes the EconomyService work in both CityPlace and MyFarm
-	if game.PlaceId == 75581316239066 then -- Replace with your CityPlace PlaceId
-		dataManager = require(ServerScriptService.CityDataManager)
-	elseif game.PlaceId == 106832184588439 then -- Replace with your MyFarm PlaceId
-        dataManager = require(ServerScriptService.FarmDataManager)
-    else
-        pcall(function() dataManager = require(ServerScriptService.CityDataManager) end)
-        if not dataManager then
-            pcall(function() dataManager = require(ServerScriptService.FarmDataManager) end)
-        end
-    end
-    
-    if not dataManager then
-        warn("EconomyService: Could not find a valid DataManager for this place.")
-    end
-
-    return dataManager
-end
+local dataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 -- ##################################################################
 -- SERVER-SIDE FUNCTIONS
@@ -58,26 +18,24 @@ if RunService:IsServer() then
     -- Set up the RemoteFunction handler
     -- This function will now wait until the player's data is loaded before returning a value.
     getBalanceFunction.OnServerInvoke = function(player)
-        local manager = getDataManager()
-        if not manager then return 0 end
+        if not dataManager then return 0 end
 
         -- Check if data is already loaded
-        if manager.PlayersData and manager.PlayersData[player.UserId] then
-            return manager.PlayersData[player.UserId].coins or 0
+        if dataManager.PlayersData and dataManager.PlayersData[player.UserId] then
+            return dataManager.PlayersData[player.UserId].coins or 0
         end
 
-        -- If not loaded, wait for the PlayerLoaded signal from the DataManager
-        manager.PlayerLoaded.Event:Wait()
+        -- If not loaded, wait for the PlayerLoaded signal from the DatadataManager
+        dataManager.PlayerLoaded.Event:Wait()
         return EconomyService:GetBalance(player) -- Now the data should be available
     end
 
     -- Get player's data from the loaded data manager cache
     local function getPlayerData(player)
-        local manager = getDataManager()
-        if not manager or not manager.PlayersData then
+        if not dataManager or not dataManager.PlayersData then
             return nil
         end
-        return manager.PlayersData[player.UserId]
+        return dataManager.PlayersData[player.UserId]
     end
     
     -- Function to get the current balance of a player

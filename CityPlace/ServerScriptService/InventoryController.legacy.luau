@@ -5,7 +5,7 @@ local ItemsStore = ServerStorage:WaitForChild("Items")
 
 local ItemDatabase = require(ReplicatedStorage:WaitForChild("GameDataModule"):WaitForChild("ItemDatabase"))
 
-local GameDataManager = require(ServerScriptService:WaitForChild("CityDataManager"))
+local DataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 local equipEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("EquipItemEvent")
 local GiveItemEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("GiveItemEvent")
@@ -21,10 +21,10 @@ local GiveItemBindable = ServerStorage:WaitForChild("BindableEvent"):WaitForChil
 -- เมื่อ Client ขอข้อมูลตอนเข้าเกม (โหลด UI กระเป๋า)
 -- ==========================================
 getDataFunction.OnServerInvoke = function(player)
-	local pData = GameDataManager.PlayersData[player.UserId]
+	local pData = DataManager.PlayersData[player.UserId]
 	while not pData do
 		task.wait(0.5)
-		pData = GameDataManager.PlayersData[player.UserId]
+		pData = DataManager.PlayersData[player.UserId]
 	end
 	return {
 		inventory = pData.player_items
@@ -44,7 +44,7 @@ equipEvent.OnServerEvent:Connect(function(player, itemName)
 	end
 
 	-- 🌟 ดึงข้อมูลกระเป๋าจาก DataManager
-	local pData = GameDataManager.PlayersData[player.UserId]
+	local pData = DataManager.PlayersData[player.UserId]
 
 	if pData and pData.player_items and pData.player_items[itemName] and pData.player_items[itemName] > 0 then
 		local toolTemplate = ItemsStore:FindFirstChild(itemName)
@@ -65,7 +65,7 @@ end)
 -- ระบบ NPC แจกไอเทม
 -- ==========================================
 GiveItemEvent.OnServerEvent:Connect(function(player, itemName, amount)
-	local pData = GameDataManager.PlayersData[player.UserId]
+	local pData = DataManager.PlayersData[player.UserId]
 	if not pData then return end
 
 	local itemInfo = ItemDatabase[itemName]
@@ -88,7 +88,7 @@ end)
 -- ระบบใช้งานไอเทม (Consume) เช่น กินอาหาร หรือ ปลูกเมล็ด
 -- ==========================================
 ConsumeItemBindable.Event:Connect(function(player, itemName, amountToConsume)
-	local pData = GameDataManager.PlayersData[player.UserId]
+	local pData = DataManager.PlayersData[player.UserId]
 
 	if pData and pData.player_items and pData.player_items[itemName] then
 		local currentAmount = pData.player_items[itemName]
@@ -120,7 +120,7 @@ end)
 -- ระบบได้รับไอเทม (จากการฟาร์ม/เก็บเกี่ยว)
 -- ==========================================
 GiveItemBindable.Event:Connect(function(player, itemName, amount)
-	local pData = GameDataManager.PlayersData[player.UserId]
+	local pData = DataManager.PlayersData[player.UserId]
 	if not pData then return end
 
 	local itemInfo = ItemDatabase[itemName]

@@ -5,7 +5,7 @@ local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 
-local DataManager = require(ServerScriptService:WaitForChild("CityDataManager"))
+local DataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 local GameTimeData = ReplicatedStorage:WaitForChild("GameTimeData")
 local ClockTime = GameTimeData:WaitForChild("ClockTime")

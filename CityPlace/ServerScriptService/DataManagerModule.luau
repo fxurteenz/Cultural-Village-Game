@@ -1,6 +1,5 @@
 local CityDataManager = {}
 local DataStoreService = game:GetService("DataStoreService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameSaveDS = DataStoreService:GetDataStore("FarmingGame_Data_V2")
 
@@ -119,11 +118,13 @@ function CityDataManager.SaveWorldData()
             return newData
         end)
     end)
-
+    print("[save world data result] : ",err)
     if success then
         print("[DataManager] บันทึก WorldData สำเร็จ!")
+        return true,err
     else
 		warn("[DataManager] บันทึก WorldData ไม่สำเร็จ: " .. tostring(err))
+        return false,err
     end
 end
 
