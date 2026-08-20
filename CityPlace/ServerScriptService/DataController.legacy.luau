@@ -1,32 +1,43 @@
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+
 local TeleportService = game:GetService("TeleportService")
 local MemoryStoreService = game:GetService("MemoryStoreService")
 
 local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("TeleportEvent")
+local TeleportFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("TeleportFunction")
+local LoadingEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("LoadingEvent") :: RemoteEvent
 
 local CityDataManager = require(script.Parent:WaitForChild("CityDataManager"))
 local EconomyService = require(ReplicatedStorage.Module.EconomyService)
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
 
--- ==========================================
--- 1. ฟังก์ชันสำหรับการวาร์ปผู้เล่นข้าม Place (แบบเดี่ยว)
--- ==========================================
 local function TeleportPlayerToPlace(player, targetPlaceId)
     if not CityDataManager.HostId then
         return
     end
 
+    LoadingEvent:FireClient(player,true,"กำลังเตรียมข้อมูล.")
     print(player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " .. targetPlaceId)
 
+    task.wait(0.2)
+
+    LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล..")
     local saveSuccess = CityDataManager.SaveSinglePlayer(player)
+    print("[save single player result] : ",saveSuccess)
     while not saveSuccess do
-        task.wait(1) -- เผื่อเวลาให้ระบบลองใหม่ชั่วคราว
+        task.wait(1)
         saveSuccess = CityDataManager.SaveSinglePlayer(player)
+		LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล...")
     end
+
+	LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล.")
+
     CityDataManager.SaveWorldData()
+	LoadingEvent:FireClient(player, true,"กำลังค้นหาเซิฟเวอร์ปลายทาง...")
 
     local hostId = CityDataManager.HostId
     local saveSlot = CityDataManager.SaveSlot
@@ -41,19 +52,21 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
 
     if success and sessionData then
         accessCode = sessionData[placeKey]
-
         if not accessCode then
+			LoadingEvent:FireClient(player, true,"กำลังเตรียมเซิฟเวอร์ใหม่...")
+
             accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
             sessionData[placeKey] = accessCode
+
             activeSessions:SetAsync(sessionId, sessionData, 86400)
-            print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " ..
-                      targetPlaceId)
+            print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " .. targetPlaceId)
         else
-            print(
-                "พบ ReserveServer เดิม กำลังส่งผู้เล่นไปเข้าร่วม...")
+			LoadingEvent:FireClient(player, true,"กำลังเตรียมเซิฟเวอร์ปลายทาง...")
+            print("พบ ReserveServer เดิม กำลังส่งผู้เล่นไปเข้าร่วม...")
         end
     else
         warn("ไม่พบข้อมูล Session กำลังสร้างใหม่...")
+		LoadingEvent:FireClient(player, true,"กำลังเตรียมเซิฟเวอร์ใหม่...")
         accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
         local newData = {
             HostId = hostId,
@@ -61,7 +74,7 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         }
         activeSessions:SetAsync(sessionId, newData, 86400)
     end
-
+	LoadingEvent:FireClient(player, true,"กำลังย้ายผู้เล่น...")
     -- เตรียมข้อมูลแพ็คใส่กระเป๋าผู้เล่น
     local teleportOptions = Instance.new("TeleportOptions")
     teleportOptions.ReservedServerAccessCode = accessCode
@@ -72,33 +85,41 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     })
 
     -- สั่งวาร์ป!
-    TeleportService:TeleportAsync(targetPlaceId, {player}, teleportOptions)
+    local success, err = pcall(function()
+        TeleportService:TeleportAsync(targetPlaceId, {player}, teleportOptions)
+    end)
+    if not success then
+        warn("TeleportAsync failed for " .. player.Name .. ": " .. tostring(err))
+        LoadingEvent:FireClient(player, true, "การวาร์ปล้มเหลว กรุณาลองใหม่อีกครั้ง")
+        task.wait(1)
+        LoadingEvent:FireClient(player, false)
+        return false
+    end
+    task.wait(1)
+    LoadingEvent:FireClient(player, false)
+    return true
 end
 
--- รับ Event จาก Client เพื่อสั่งวาร์ป
 TeleportEvent.OnServerEvent:Connect(function(player, targetPlaceId)
     TeleportPlayerToPlace(player, targetPlaceId)
 end)
 
--- ==========================================
--- 2. ระบบรับผู้เล่นเข้าเซิร์ฟเวอร์เมือง
--- ==========================================
+TeleportFunction.OnInvoke = function(player, targetPlaceId)
+   return TeleportPlayerToPlace(player, targetPlaceId)
+end
+
 Players.PlayerAdded:Connect(function(player)
     local joinData = player:GetJoinData()
     local teleportData = joinData.TeleportData
 
-    -- ==========================================
-    -- FOR TEST IN STUDIO
-    -- ==========================================
     if RunService:IsStudio() and not teleportData then
-        print("🔧 [TESTING] จำลอง TeleportData สำหรับแมพเมือง...")
+        print("🔧 [TESTING] จำลอง TeleportData")
         teleportData = {
             HostId = player.UserId,
             SaveSlot = "save_slot1",
             SessionId = tostring(player.UserId) .. "_save_slot1"
         }
     end
-    -- ==========================================
 
     if teleportData and teleportData.HostId and teleportData.SaveSlot then
         local hostId = teleportData.HostId
@@ -109,31 +130,24 @@ Players.PlayerAdded:Connect(function(player)
         end
 
         CityDataManager.LoadPlayerData(player, hostId, saveSlot)
-        print("🎒 โหลดกระเป๋าผู้เล่น " .. player.Name .. " เข้าสู่เมืองพร้อมเล่น!")
+        print("[DataController] Player data Loaded : " .. player.Name .. "")
 
     else
-        warn(player.Name .. " ไม่พบ TeleportData สำหรับการโหลดเซฟ")
+        warn("[DataController] : Can't find TeleportData for " ..  player.Name)
     end
 end)
 
--- ==========================================
--- 3. ระบบเซฟเมื่อผู้เล่นออก / เซิร์ฟเวอร์ปิด
--- ==========================================
-
--- เมื่อมีผู้เล่นกดออกเกม (Leave) ให้เซฟเฉพาะข้อมูลคนนั้น
 Players.PlayerRemoving:Connect(function(player)
     if CityDataManager.HostId then
         CityDataManager.SaveSinglePlayer(player)
     end
 end)
 
--- บันทึกข้อมูลเมื่อเซิร์ฟเวอร์เมืองกำลังจะปิด
 game:BindToClose(function()
     if CityDataManager.HostId then
-        -- 1. อัปเดตแมพล่าสุดลงหน้าปกเซฟ เพื่อให้หน้า Main Menu รู้ว่าเซฟไว้ที่เมือง
         CityDataManager.UpdateMenuInfo()
         CityDataManager.SaveWorldData()
-        -- 2. วนลูปเซฟข้อมูลผู้เล่นทุกคนที่ยังติดอยู่ในแมพเมือง
+
         for _, player in ipairs(Players:GetPlayers()) do
             CityDataManager.SaveSinglePlayer(player)
         end

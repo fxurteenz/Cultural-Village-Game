@@ -31,7 +31,7 @@ local QuestData = {
         }
     },
 
-    ["Q003"] = {
+    ["Q001"] = {
         Name = "ทดลองปลูกข้าว",
         Description = "ปลูกข้าวที่แปลงปลูกข้าวอินทรีย์",
         location = "แปลงปลูกข้าวอินทรีย์",
@@ -42,7 +42,9 @@ local QuestData = {
             Exp = 50
         }
     },
-    ["Q001"] = {
+
+    -- NOT TESTED
+    ["Q003"] = {
         Name = "เก็บเกี่ยวข้าว",
         Description = "เก็บเกี่ยวผลผลิตจากข้าว",
         location = "แปลงปลูกข้าวอินทรีย์",
@@ -52,18 +54,19 @@ local QuestData = {
             Coins = 100,
             Exp = 50
         }
-    },
-    ["Q005"] = {
-        Name = "ไปนั่งกี่ทอผ้า",
-        Description = "ทดลองทอผ้า",
-        location = "บ้านหัตถกรรม",
-        TargetAmount = 1,
-        ReadyToSubmitMessage = "เอาผ้าที่ทอไปอวดพี่มะลิ",
-        Rewards = {
-            Coins = 100,
-            Exp = 50
-        }
-    },
+	},
+
+    --["Q005"] = {
+    --    Name = "ไปนั่งกี่ทอผ้า",
+    --    Description = "ทดลองทอผ้า",
+    --    location = "บ้านหัตถกรรม",
+    --    TargetAmount = 1,
+    --    ReadyToSubmitMessage = "เอาผ้าที่ทอไปอวดพี่มะลิ",
+    --    Rewards = {
+    --        Coins = 100,
+    --        Exp = 50
+    --    }
+    --},
 
     ["T001"] = {
         Name = "พูดคุยกับชาวบ้าน",
@@ -73,7 +76,7 @@ local QuestData = {
         Target = {
             AuntySomporn = false,
             Mali = false
-
+			
         },
         Rewards = {
             Coins = 100,

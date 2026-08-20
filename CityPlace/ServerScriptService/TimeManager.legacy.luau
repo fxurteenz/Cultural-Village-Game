@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 
 local DataManager = require(ServerScriptService:WaitForChild("CityDataManager"))
 
--- ดึงค่ามาจาก ReplicatedStorage
 local GameTimeData = ReplicatedStorage:WaitForChild("GameTimeData")
 local ClockTime = GameTimeData:WaitForChild("ClockTime")
 local DayValue = GameTimeData:WaitForChild("Day")
@@ -23,20 +22,16 @@ while not DataManager.WorldData do
 end
 print("[TimeSystem] ได้รับข้อมูล WorldData แล้ว! เริ่มระบบเวลา...")
 
--- 🌟 อ้างอิงไปยัง WorldData.time ของแมพฟาร์มโดยตรง
 local saveTimeData = DataManager.WorldData.time
 
--- ตั้งค่าเริ่มต้นโดยดึงมาจาก Save Data
 local currentMinute = 0
 local currentHour = saveTimeData.clock_time or 7
 local currentDay = saveTimeData.day or 1
 local currentSeason = saveTimeData.season or 1
 local currentYear = saveTimeData.year or 1
 
--- ตัวแปรสำหรับหยุดเวลาชั่วคราวตอนนอน
 local isTimePaused = false
 
--- ตั้งค่าความเร็วของเวลา
 local REAL_SECONDS_PER_GAME_MINUTE = 2
 local PASS_OUT_HOUR = 2
 local MAX_DAYS_PER_SEASON = 30

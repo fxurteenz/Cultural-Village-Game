@@ -43,7 +43,7 @@ function CityDataManager.LoadWorldData(hostId, saveSlot)
     CityDataManager.SaveSlot = saveSlot
 
     local worldKey = tostring(hostId) .. "_" .. saveSlot .. "_World"
-    print("🌍 [City] กำลังโหลดข้อมูล World ในเมือง: " .. worldKey)
+    print(" [DataManager] : กำลังโหลดข้อมูล World : " .. worldKey)
 
     local success, data = pcall(function()
         return GameSaveDS:GetAsync(worldKey)
@@ -51,10 +51,10 @@ function CityDataManager.LoadWorldData(hostId, saveSlot)
 
     if success and data then
         CityDataManager.WorldData = data
-        print("✅ [City] โหลด World Data สำเร็จ!")
+        print("[DataManager] : โหลด World Data สำเร็จ")
     else
         CityDataManager.WorldData = getDefaultWorldData()
-        print("✨ [City] สร้าง World Data เริ่มต้นใหม่ในเมือง!")
+		print("[DataManager] : สร้าง World Data ต้นใหม่")
     end
 end
 
@@ -94,11 +94,11 @@ function CityDataManager.SaveSinglePlayer(player)
         GameSaveDS:SetAsync(playerKey, pData)
     end)
     if success then
-        print("💾 บันทึกข้อมูลของ " .. player.Name .. " สำเร็จ 100% ก่อนวาร์ป")
+		print("[DataManager] : บันทึกข้อมูลของ " .. player.Name .. " สำเร็จ")
         CityDataManager.PlayersData[player.UserId] = nil --เคลียร์แรม
         return true
     else
-        warn("❌ บันทึกข้อมูลไม่สำเร็จ: " .. tostring(err))
+		warn("[DataManager] : บันทึกข้อมูลไม่สำเร็จ: " .. tostring(err))
         return false
     end
 end
@@ -121,10 +121,9 @@ function CityDataManager.SaveWorldData()
     end)
 
     if success then
-        print(
-            "💾 [City] บันทึก WorldData (เวลา/ฤดูกาล) ลง DataStore สำเร็จ!")
+        print("[DataManager] บันทึก WorldData สำเร็จ!")
     else
-        warn("❌ [City] บันทึก WorldData ไม่สำเร็จ: " .. tostring(err))
+		warn("[DataManager] บันทึก WorldData ไม่สำเร็จ: " .. tostring(err))
     end
 end
 
