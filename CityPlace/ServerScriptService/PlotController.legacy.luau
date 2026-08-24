@@ -8,6 +8,7 @@ local QuestNotiEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChil
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local ConsumeItemEvent = ServerStorage:WaitForChild("BindableEvent"):WaitForChild("ConsumeItemEvent")
 local GiveItemBindable = ServerStorage:WaitForChild("BindableEvent"):WaitForChild("GiveItemBindable")
+local SpecialEventTrigger = game:GetService("ServerStorage"):WaitForChild("BindableFunction"):WaitForChild("SpecialEventFunction")
 
 local GameTimeData = ReplicatedStorage:WaitForChild("GameTimeData")
 local DayValue = GameTimeData:WaitForChild("Day")
@@ -24,6 +25,7 @@ local function UpdatePlotVisual(oldPlot)
 	local cropName = oldPlot:GetAttribute("Crop")
 	local daysGrown = oldPlot:GetAttribute("DaysGrown")
 	local state = oldPlot:GetAttribute("State")
+    local stateIndex = daysGrown-1
 	local newPlotTemplate = nil
 
 	-- ==========================================
@@ -53,20 +55,33 @@ local function UpdatePlotVisual(oldPlot)
 				daysGrown = cropInfo.MaxDays
 			end
 
-			local stageData = cropInfo.Stages[daysGrown]
-
+			local stageData = cropInfo.Stages[stateIndex]
 			if stageData then
 				local plotFolder = CropsModelFolder:FindFirstChild(cropInfo.PlotTypeFolder)
 				if plotFolder then
 					local cropFolder = plotFolder:FindFirstChild(cropInfo.CropFolder)
 					if cropFolder then
 						newPlotTemplate = cropFolder:FindFirstChild(stageData.ModelName)
-
-						-- อัปเดต State ให้เป็นสถานะของพืชในระยะนั้นๆ (เช่น Seedling)
 						oldPlot:SetAttribute("State", stageData.State)
 					end
 				end
 			end
+
+            local specialEventData = cropInfo.SpecialEvent
+            if specialEventData then
+                local eventId = cropInfo.eventId
+                if specialEventData.atStage == stateIndex then
+                    local invoke_res, invoke_data = pcall(function()
+                        return SpecialEventTrigger:Invoke(eventId)
+                    end)
+
+                    if invoke_res then
+                        print("[PLOT_CONTROLLER] ".. invoke_data)
+                    else
+                        warn("[PLOT_CONTROLLER] ".. invoke_data)
+                    end
+                end
+            end
 		end
 	end
 
@@ -148,7 +163,7 @@ local function setupPlot(plot)
 				prompt.Enabled = true
 
 				-- 5. สลับโมเดลกลับเป็นแปลงดินเปล่า
-				UpdatePlotVisual(plot) 
+				UpdatePlotVisual(plot)
 			else
 				print("พืชยังไม่พร้อมเก็บเกี่ยว!")
 			end

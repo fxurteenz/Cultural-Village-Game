@@ -26,11 +26,11 @@ local SeasonKeys = {
 
 local EventCalendar = {
     RN = {
-        [5] = { -- วันที่ 5 ของฤดูฝน
-            eventName = "ฝูงนกกระเรียนลงนา",
-            eventId = "CRANE_VISIT",
-            questId = "Q_CRANE_001"
-        }
+        -- [5] = { -- วันที่ 5 ของฤดูฝน
+        --     eventName = "ฝูงนกกระเรียนลงนา",
+        --     eventId = "CRANE_VISIT",
+        --     questId = "Q_CRANE_001"
+        -- }
     },
     WT = {},
     SM = {},
