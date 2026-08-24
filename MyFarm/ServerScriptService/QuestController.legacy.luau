@@ -1,12 +1,15 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
 
 local QuestManager = require(ReplicatedStorage:WaitForChild("Module"):WaitForChild("QuestModule"))
 local GetQuestDataRF = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetQuestData")
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local QuestNotiEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestNotiEvent")
 local BindableQuestFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("QuestFunction")
+local GameManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 GetQuestDataRF.OnServerInvoke = function(player)
     return QuestManager.GetAllQuestData(player)
@@ -63,3 +66,7 @@ BindableQuestFunction.OnInvoke = function(player, questID, amount, action, targe
         return ProcessQuestAction(player, questID, amount, action, targetName)
     end
 end
+
+GameManager.PlayerLoaded.Event:Connect(function(player)
+    QuestEvent:FireClient(player, "refresh")
+end)
