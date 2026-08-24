@@ -39,26 +39,22 @@ local EventCalendar = {
 -- ==========================================
 -- รอข้อมูล WorldData จาก DataManager
 -- ==========================================
-print("[TimeSystem] กำลังรอข้อมูล WorldData จาก DataManager...")
-while not DataManager.WorldData do
-    task.wait(0.5)
-end
-print("[TimeSystem] ได้รับข้อมูล WorldData แล้ว! เริ่มระบบเวลา...")
 
-local saveTimeData = DataManager.WorldData.time
-
+local saveTimeData = nil
 local currentMinute = 0
-local currentHour = saveTimeData.clock_time or 7
-local currentDay = saveTimeData.day or 1
-local currentSeason = saveTimeData.season or 1
-local currentYear = saveTimeData.year or 1
+local currentHour = 7
+local currentDay =  1
+local currentSeason = 1
+local currentYear = 1
 
 local isTimePaused = false
 
-local REAL_SECONDS_PER_GAME_MINUTE = 2
+local TimeTask = nil
+
+local REAL_SECONDS_PER_GAME_MINUTE = 10
 local PASS_OUT_HOUR = 2
 local MAX_DAYS_PER_SEASON = 30
-local MAX_SEASONS = 3 -- ปรับเป็น 3 ฤดูตามที่คุณต้องการ
+local MAX_SEASONS = 3
 
 local HOME_SPAWN_LOCATION = CFrame.new(0, 5, 0) 
 
@@ -149,81 +145,93 @@ local function passOutPlayers()
     end
 end
 
--- ==========================================
--- ลูปการทำงานหลัก (Main Time Loop)
--- ==========================================
-task.spawn(function()
-    DayValue.Value = currentDay
-    SeasonValue.Value = currentSeason
-    YearValue.Value = currentYear
-    ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
+local function startTimeTask()
+    TimeTask = task.spawn(function()
+        DayValue.Value = currentDay
+        SeasonValue.Value = currentSeason
+        YearValue.Value = currentYear
+        ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
 
-    Lighting.ClockTime = currentHour
-    local initAmbient, initColorShift = getLightingColors(currentHour)
-    Lighting.OutdoorAmbient = initAmbient
-    Lighting.ColorShift_Top = initColorShift
+        Lighting.ClockTime = currentHour
+        local initAmbient, initColorShift = getLightingColors(currentHour)
+        Lighting.OutdoorAmbient = initAmbient
+        Lighting.ColorShift_Top = initColorShift
 
-    -- เช็ค Event ทันทีที่โหลดเกมเสร็จ (กรณีโหลดเซฟมาตรงกับวันที่มี Event พอดี)
-    checkSpecialEvent(currentSeason, currentDay)
+        checkSpecialEvent(currentSeason, currentDay)
 
-    while true do
-        task.wait(REAL_SECONDS_PER_GAME_MINUTE)
+        while true do
+            task.wait(REAL_SECONDS_PER_GAME_MINUTE)
 
-        if not isTimePaused then
-            currentMinute += 10 
+            if not isTimePaused then
+                currentMinute += 10 
 
-            if currentMinute >= 60 then
-                currentMinute = 0
-                currentHour += 1
+                if currentMinute >= 60 then
+                    currentMinute = 0
+                    currentHour += 1
 
-                if currentHour >= 24 then
-                    currentHour = 0
+                    if currentHour >= 24 then
+                        currentHour = 0
+                    end
+
+                    saveTimeData.clock_time = currentHour
                 end
 
-                saveTimeData.clock_time = currentHour
-            end
+                ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
 
-            ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
-
-            local targetDecimalTime = currentHour + (currentMinute / 60)
-            if targetDecimalTime == 0 then
-                targetDecimalTime = 24
-            end
-
-            local targetAmbient, targetColorShift = getLightingColors(targetDecimalTime)
-            local tweenInfo = TweenInfo.new(REAL_SECONDS_PER_GAME_MINUTE, Enum.EasingStyle.Linear)
-            local timeTween = TweenService:Create(Lighting, tweenInfo, {
-                ClockTime = targetDecimalTime,
-                OutdoorAmbient = targetAmbient,
-                ColorShift_Top = targetColorShift
-            })
-            timeTween:Play()
-
-            if currentHour == PASS_OUT_HOUR and currentMinute == 0 then
-                passOutPlayers()
-                isTimePaused = true
-
-                for _, p in ipairs(Players:GetPlayers()) do
-                    SleepEvent:FireClient(p, true)
+                local targetDecimalTime = currentHour + (currentMinute / 60)
+                if targetDecimalTime == 0 then
+                    targetDecimalTime = 24
                 end
 
-                task.wait(3)
-                startNewDay()
+                local targetAmbient, targetColorShift = getLightingColors(targetDecimalTime)
+                local tweenInfo = TweenInfo.new(REAL_SECONDS_PER_GAME_MINUTE, Enum.EasingStyle.Linear)
+                local timeTween = TweenService:Create(Lighting, tweenInfo, {
+                    ClockTime = targetDecimalTime,
+                    OutdoorAmbient = targetAmbient,
+                    ColorShift_Top = targetColorShift
+                })
+                timeTween:Play()
 
-                ClockTime.Value = "07:00"
-                Lighting.ClockTime = 7
-                local a, c = getLightingColors(7)
-                Lighting.OutdoorAmbient = a
-                Lighting.ColorShift_Top = c
+                if currentHour == PASS_OUT_HOUR and currentMinute == 0 then
+                    passOutPlayers()
+                    isTimePaused = true
 
-                isTimePaused = false
-                for _, p in ipairs(Players:GetPlayers()) do
-                    SleepEvent:FireClient(p, false)
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        SleepEvent:FireClient(p, true)
+                    end
+
+                    task.wait(3)
+                    startNewDay()
+
+                    ClockTime.Value = "07:00"
+                    Lighting.ClockTime = 7
+                    local a, c = getLightingColors(7)
+                    Lighting.OutdoorAmbient = a
+                    Lighting.ColorShift_Top = c
+
+                    isTimePaused = false
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        SleepEvent:FireClient(p, false)
+                    end
                 end
             end
         end
-    end
-end)
+    end)    
+end
+-- ==========================================
+-- ลูปการทำงานหลัก (Main Time Loop)
+-- ==========================================
+DataManager.WorldTimeSync.OnInvoke = function()
+    saveTimeData = DataManager.WorldData.time
+    currentHour = saveTimeData.clock_time
+    currentDay = saveTimeData.day
+    currentSeason = saveTimeData.season
+    currentYear = saveTimeData.year
+
+    startTimeTask()
+
+    return true, "time synced start time"
+end
 
 SleepEvent.OnServerEvent:Connect(function(player)
     if isTimePaused then return end
@@ -244,3 +252,15 @@ SleepEvent.OnServerEvent:Connect(function(player)
 
     print(player.Name .. " went to sleep safely and woke up at 7:00 AM.")
 end)
+
+if DataManager.WorldData then
+    saveTimeData = DataManager.WorldData.time
+    currentHour = saveTimeData.clock_time
+    currentDay = saveTimeData.day
+    currentSeason = saveTimeData.season
+    currentYear = saveTimeData.year
+
+    if not TimeTask then
+        startTimeTask()
+    end
+end

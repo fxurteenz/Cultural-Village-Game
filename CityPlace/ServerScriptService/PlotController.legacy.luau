@@ -1,8 +1,10 @@
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local CollectionService = game:GetService("CollectionService")
 
 local QuestManager = require(ReplicatedStorage:WaitForChild("Module"):WaitForChild("QuestModule"))
+local DataManager = require(script.Parent:WaitForChild("DataManagerModule"))
 
 local QuestNotiEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestNotiEvent")
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
@@ -17,15 +19,17 @@ local CropDatabase = require(ReplicatedStorage:WaitForChild("GameDataModule"):Wa
 
 local CropsModelFolder = ServerStorage:WaitForChild("CropsModel")
 
+local isPlotLoaded = false
+
 -- ==========================================
 -- ฟังก์ชันอัปเดตโมเดลของแปลง (Update Visuals)
 -- ==========================================
 
 local function UpdatePlotVisual(oldPlot)
-	local cropName = oldPlot:GetAttribute("Crop")
+	local cropName = oldPlot:GetAttribute("CropName")
 	local daysGrown = oldPlot:GetAttribute("DaysGrown")
 	local state = oldPlot:GetAttribute("State")
-    local stateIndex = daysGrown-1
+    local stateIndex = tonumber(daysGrown)
 	local newPlotTemplate = nil
 
 	-- ==========================================
@@ -90,7 +94,7 @@ local function UpdatePlotVisual(oldPlot)
 	-- ==========================================
 	if newPlotTemplate then
 		local newPlot = newPlotTemplate:Clone()
-
+        print(newPlot.Name)
 		-- 1. ย้ายตำแหน่งร่างใหม่ (ใช้ PivotTo ตามที่เราคุยกันเพื่อลาก Model มาทั้งยวง)
 		newPlot:PivotTo(oldPlot:GetPivot())
 		newPlot.Parent = oldPlot.Parent
@@ -107,6 +111,7 @@ local function UpdatePlotVisual(oldPlot)
 
 		-- 4. ลบก้อน Plot อันเก่าทิ้ง
 		oldPlot:Destroy()
+        --print("[PLOTCONTROLLER] : updated plot visual ".. cropName.. " -> ".. newPlot:GetAttribute("CropName"))
 	else
 		warn("❌ ไม่พบโมเดลต้นแบบสำหรับสลับ (Crop: " .. tostring(cropName) .. ", State: " .. tostring(state) .. ")")
 	end
@@ -138,7 +143,7 @@ local function setupPlot(plot)
 		-- ==========================================
 		if toolType == "Harvest" then
 			if plot:GetAttribute("State") == "ReadyToHarvest" then
-				local cropName = plot:GetAttribute("Crop")
+				local cropName = plot:GetAttribute("CropName")
 
 				-- 1. ดึงข้อมูลพืชจาก Database
 				local cropInfo = CropDatabase.GetCropInfo(cropName)
@@ -155,7 +160,7 @@ local function setupPlot(plot)
 				end
 
 				-- 3. รีเซ็ตข้อมูลแปลงกลับเป็นแปลงว่าง
-				plot:SetAttribute("Crop", "")
+				plot:SetAttribute("CropName", "")
 				plot:SetAttribute("State", "Empty")
 				plot:SetAttribute("DaysGrown", 0)
 
@@ -182,9 +187,16 @@ local function setupPlot(plot)
 			end
 
 			if CollectionService:HasTag(plot, requiredPlot) and plot:GetAttribute("State") == "Empty" then
-				plot:SetAttribute("Crop", cropName)
-				plot:SetAttribute("DaysGrown", 0)
+                local cropInfo = CropDatabase.Crops[cropName]
+                if not cropInfo then
+                    warn("[PLOTCONTROLLER] : invalid crop name ",cropName)
+                    print(cropInfo)
+                    return
+                end
 
+				plot:SetAttribute("CropName", cropName)
+				plot:SetAttribute("DaysGrown", 0)
+                plot:SetAttribute("State",cropInfo.Stages[0].State)
 				prompt.Enabled = false 
 
 				if equippedTool:GetAttribute("IsConsumable") == true then
@@ -226,17 +238,91 @@ local function setupPlot(plot)
 	end)
 end
 
--- ==========================================
--- วนลูป setup แปลงที่มีอยู่
--- ==========================================
+local function LoadPlotsIntoWorkspace()
+    local place_plots = ""
+    if game.PlaceId == 75581316239066 then
+        place_plots = "city"
+    elseif game.PlaceId == 106832184588439 then
+        place_plots = "farm"
+    else
+        warn("[DATAMANAGER] : syncPlotsData() unknow placeId")
+        return
+    end
+    if not DataManager.WorldData.plots then 
+        print("[PlotController] ไม่พบตาราง plots ในข้อมูลเซฟ")
+        return 
+    end
 
-for _, plot in pairs(CollectionService:GetTagged("FieldPlot")) do
-	print(plot)
-	setupPlot(plot)
+    local savedPlots = DataManager.WorldData.plots[place_plots]
+    if not savedPlots then return end
+
+    local allPlots = {}
+    for _, plot in pairs(CollectionService:GetTagged("FieldPlot")) do 
+        table.insert(allPlots, plot)
+    end
+    for _, plot in pairs(CollectionService:GetTagged("NormalPlot")) do 
+        table.insert(allPlots, plot) 
+    end
+
+    for _, plot in pairs(allPlots) do
+        local plotId = plot:GetAttribute("PlotID")
+        
+        if plotId and savedPlots[plotId] then
+            local data = savedPlots[plotId] 
+
+            for attrName, attrValue in pairs(data) do
+                plot:SetAttribute(attrName, attrValue)
+            end
+
+            UpdatePlotVisual(plot)
+        else
+
+            setupPlot(plot)
+        end
+    end
+    print("[PlotController] โหลดข้อมูลแปลงเพาะปลูกเสร็จสิ้น")
 end
 
-for _, plot in pairs(CollectionService:GetTagged("NormalPlot")) do
-	setupPlot(plot)
+local function SyncPlotsData()
+    if not DataManager.WorldData then return end
+    
+    if type(DataManager.WorldData.plots) ~= "table" then
+        DataManager.WorldData.plots = {}
+    end
+
+    local place_plots = ""
+    if game.PlaceId == 75581316239066 then
+        DataManager.WorldData.plots.city = {}
+        place_plots = "city"
+    elseif game.PlaceId == 106832184588439 then
+        DataManager.WorldData.plots.farm = {}
+        place_plots = "farm"
+    else
+        warn("[DATAMANAGER] : syncPlotsData() unknow placeId")
+        return
+    end
+
+    -- ดึงแปลงทุกประเภทมารวมกัน
+    local allPlots = {}
+    for _, plot in pairs(CollectionService:GetTagged("FieldPlot")) do
+        table.insert(allPlots, plot)
+    end
+    for _, plot in pairs(CollectionService:GetTagged("NormalPlot")) do
+        table.insert(allPlots, plot)
+    end
+
+    -- เก็บข้อมูล Attribute ปัจจุบันของแต่ละแปลง
+    for _, plot in pairs(allPlots) do
+        local plotId = plot:GetAttribute("PlotID")
+        if plotId then
+            DataManager.WorldData.plots[place_plots][plotId] = plot:GetAttributes()
+            --print("[PLOTCONTROLLER] :".. HttpService:JSONEncode(DataManager.WorldData.plots[place_plots][plotId]))
+        else
+            warn("[PLOTCONTROLLER] : syncPlotsData() ไม่พบ PlotID ของแปลง")
+        end
+    end
+    print("[PlotController] ซิงค์ข้อมูลแปลงเพาะปลูกเข้า WorldData ("..place_plots..") แล้ว")
+    return true,"success"
 end
 
 -- ระบบตรวจจับการเพิ่มแปลงใหม่
@@ -245,30 +331,40 @@ CollectionService:GetInstanceAddedSignal("NormalPlot"):Connect(setupPlot)
 
 -- ตรวจจับวันใหม่
 DayValue.Changed:Connect(function(newDay)
-	print("เข้าสู่วันที่ " .. newDay .. " อัปเดตการเติบโตของพืช!")
+	if not isPlotLoaded then return end
 
-	-- ดึงแปลงทุกประเภทมารวมกัน
-	local allPlots = {}
-	for _, plot in pairs(CollectionService:GetTagged("FieldPlot")) do
-		table.insert(allPlots, plot)
-	end
-	for _, plot in pairs(CollectionService:GetTagged("NormalPlot")) do
-		table.insert(allPlots, plot)
-	end
+	print("เข้าสู่วันที่ " .. newDay .. " อัปเดตการเติบโตของพืชทั่วโลก!")
 
-	for _, plot in pairs(allPlots) do
-		local state = plot:GetAttribute("State")
-		local cropName = plot:GetAttribute("Crop")
+	SyncPlotsData()
 
-		-- ถ้าแปลงมีการปลูกพืชอยู่ และยังไม่ถึงระยะพร้อมเก็บเกี่ยว
-		if cropName and cropName ~= "" and state ~= "Empty" and state ~= "ReadyToHarvest" then
+	if DataManager.WorldData and DataManager.WorldData.plots then
+		for placeName, placePlots in pairs(DataManager.WorldData.plots) do
+			for plotId, plotData in pairs(placePlots) do
+				local state = plotData.State
+				local cropName = plotData.CropName
 
-			-- เพิ่มจำนวนวันที่ปลูก +1
-			local currentDays = plot:GetAttribute("DaysGrown") or 0
-			plot:SetAttribute("DaysGrown", currentDays + 1)
-
-			-- อัปเดตโมเดล
-			UpdatePlotVisual(plot)
+				if cropName and cropName ~= "" and state ~= "Empty" and state ~= "ReadyToHarvest" then
+					plotData.DaysGrown = (plotData.DaysGrown or 0) + 1
+				end
+			end
 		end
 	end
+
+	LoadPlotsIntoWorkspace()
 end)
+
+DataManager.WorldLoaded.Event:Connect(function()
+    print("[PLOTCONTROLLER] : get World loaded event")
+    LoadPlotsIntoWorkspace()
+    isPlotLoaded = true
+end)
+
+DataManager.WorldSaving.OnInvoke = function()
+    print("[PLOTCONTROLLER] : get World saving request event")
+    return SyncPlotsData()
+end
+
+if DataManager.WorldData ~= nil then
+	LoadPlotsIntoWorkspace()
+	isPlotLoaded = true
+end

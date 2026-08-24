@@ -36,6 +36,9 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     end
 
     LoadingEvent:FireClient(player, true, "กำลังเตรียมข้อมูล.")
+    
+    local syncRes, syncMsg = pcall(function() return DataManager.WorldSaving:Invoke() end)
+    print("[DataController] วาร์ปข้ามแมพ - ซิงค์ข้อมูลแปลง: ", syncRes, syncMsg)
 
     DataManager.SaveWorldData()
     LoadingEvent:FireClient(player, true, "กำลังค้นหาเซิฟเวอร์ปลายทาง...")
@@ -169,8 +172,15 @@ end)
 
 game:BindToClose(function()
     if DataManager.HostId then
-        DataManager.UpdateMenuInfo()
+        local res, msg = pcall(function() return DataManager.WorldSaving:Invoke() end)
+        
+        while not res do
+            task.wait(1)
+            res, msg = pcall(function() return DataManager.WorldSaving:Invoke() end)
+        end
+
         DataManager.SaveWorldData()
+        DataManager.UpdateMenuInfo()
 
         for _, player in ipairs(Players:GetPlayers()) do
             DataManager.SaveSinglePlayer(player)

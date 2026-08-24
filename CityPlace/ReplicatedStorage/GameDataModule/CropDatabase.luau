@@ -39,4 +39,4 @@ function CropDatabase.GetCropInfo(cropName)
 	return CropDatabase.Crops[cropName]
 end
 
-return CropDatabase
+return table.freeze(CropDatabase)

@@ -8,6 +8,10 @@ DataManager.SaveSlot = nil
 DataManager.WorldData = nil
 DataManager.PlayersData = {}
 DataManager.PlayerLoaded = Instance.new("BindableEvent")
+DataManager.WorldLoaded = Instance.new("BindableEvent") 
+DataManager.WorldSaving = Instance.new("BindableFunction")
+DataManager.WorldTimeSync = Instance.new("BindableFunction")
+DataManager.PlayerDataLoaded = {}
 local function getDefaultWorldData()
     return {
         ["time"] = {
@@ -19,6 +23,10 @@ local function getDefaultWorldData()
         ["world_stats"] = {
             ["environment"] = 50,
             ["social"] = 50
+        },
+        ["plots"] = {
+            ["city"] = {},
+            ["farm"] = {}
         }
     }
 end
@@ -54,6 +62,21 @@ function DataManager.LoadWorldData(hostId, saveSlot)
         DataManager.WorldData = getDefaultWorldData()
 		print("[DataManager] : สร้าง World Data ต้นใหม่")
     end
+
+    local synctime_res, synctime_msg = pcall(function()
+        return DataManager.WorldTimeSync:Invoke()
+    end)
+    local retry_attemp = 0
+    while not synctime_res do
+        warn("[DATAMANAGER] : time sync fail ".. synctime_msg.." ".. retry_attemp .." retrying...")
+        retry_attemp = retry_attemp + 1
+        task.wait(0.5)
+        synctime_res, synctime_msg = pcall(function()
+            return DataManager.WorldTimeSync:Invoke()
+        end)
+    end
+    print("[DATAMANAGER]: time sync res ", synctime_msg, synctime_res)
+    DataManager.WorldLoaded:Fire()
 end
 
 function DataManager.LoadPlayerData(player, hostId, saveSlot)
@@ -75,7 +98,9 @@ function DataManager.LoadPlayerData(player, hostId, saveSlot)
         data.coins = data.coins or 500
 
         DataManager.PlayersData[player.UserId] = data
+        DataManager.PlayerDataLoaded[player.UserId] = true
     else
+        warn("[DATAMANAGER]: can't get player "..player.UserId.."'s data writing an empty data")
         DataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
     end
 
@@ -113,15 +138,18 @@ function DataManager.SaveWorldData()
                 return DataManager.WorldData
             end
             local newData = oldData
-            newData.time = DataManager.WorldData.time
+            -- newData.time = DataManager.WorldData.time
+            newData = DataManager.WorldData
             return newData
         end)
     end)
 
     if success then
         print("[DataManager] บันทึก WorldData สำเร็จ!")
+        return true,err
     else
 		warn("[DataManager] บันทึก WorldData ไม่สำเร็จ: " .. tostring(err))
+        return false,err
     end
 end
 

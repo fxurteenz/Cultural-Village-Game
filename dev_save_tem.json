@@ -18,15 +18,406 @@
         "coins": 600
     },
     "7597767503_save_slot1_World": {
-        "time": {
-            "clock_time": 9,
-            "day": 1,
-            "year": 1,
-            "season": 1
-        },
+        "saruses": [],
         "world_stats": {
             "environment": 50,
             "social": 50
+        },
+        "time": {
+            "clock_time": 17,
+            "year": 1,
+            "season": 1,
+            "day": 7
+        },
+        "plots": {
+            "city": {
+                "FP026": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP026",
+                    "DaysGrown": 0
+                },
+                "FP030": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP030",
+                    "DaysGrown": 0
+                },
+                "FP014": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP014",
+                    "DaysGrown": 0
+                },
+                "FP002": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP002",
+                    "DaysGrown": 0
+                },
+                "FP027": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP027",
+                    "DaysGrown": 0
+                },
+                "FP004": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP004",
+                    "DaysGrown": 0
+                },
+                "FP010": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP010",
+                    "DaysGrown": 0
+                },
+                "FP012": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP012",
+                    "DaysGrown": 0
+                },
+                "FP028": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP028",
+                    "DaysGrown": 0
+                },
+                "FP029": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP029",
+                    "DaysGrown": 0
+                },
+                "FP032": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP032",
+                    "DaysGrown": 0
+                },
+                "FP024": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP024",
+                    "DaysGrown": 0
+                },
+                "FP022": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP022",
+                    "DaysGrown": 0
+                },
+                "FP008": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP008",
+                    "DaysGrown": 0
+                },
+                "FP006": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP006",
+                    "DaysGrown": 0
+                },
+                "FP020": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP020",
+                    "DaysGrown": 0
+                },
+                "FP005": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP005",
+                    "DaysGrown": 0
+                },
+                "FP013": {
+                    "State": "Seedling",
+                    "CropName": "RiceSprout",
+                    "PlotID": "FP013",
+                    "DaysGrown": 0
+                },
+                "FP001": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP001",
+                    "DaysGrown": 0
+                },
+                "FP018": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP018",
+                    "DaysGrown": 0
+                },
+                "FP031": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP031",
+                    "DaysGrown": 0
+                },
+                "FP011": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP011",
+                    "DaysGrown": 0
+                },
+                "FP019": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP019",
+                    "DaysGrown": 0
+                },
+                "FP015": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP015",
+                    "DaysGrown": 0
+                },
+                "FP021": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP021",
+                    "DaysGrown": 0
+                },
+                "FP007": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP007",
+                    "DaysGrown": 0
+                },
+                "FP009": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP009",
+                    "DaysGrown": 0
+                },
+                "FP023": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP023",
+                    "DaysGrown": 0
+                },
+                "FP017": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP017",
+                    "DaysGrown": 0
+                },
+                "FP003": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP003",
+                    "DaysGrown": 0
+                },
+                "FP025": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP025",
+                    "DaysGrown": 0
+                },
+                "FP016": {
+                    "State": "Empty",
+                    "CropName": "",
+                    "PlotID": "FP016",
+                    "DaysGrown": 0
+                }
+            },
+            "farm": {
+                "FP026": {
+                    "State": "Empty",
+                    "PlotID": "FP026",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP030": {
+                    "State": "Empty",
+                    "PlotID": "FP030",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP014": {
+                    "State": "Empty",
+                    "PlotID": "FP014",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP002": {
+                    "State": "Empty",
+                    "PlotID": "FP002",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP027": {
+                    "State": "Empty",
+                    "PlotID": "FP027",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP004": {
+                    "State": "Empty",
+                    "PlotID": "FP004",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP010": {
+                    "State": "Empty",
+                    "PlotID": "FP010",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP012": {
+                    "State": "Empty",
+                    "PlotID": "FP012",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP028": {
+                    "State": "Empty",
+                    "PlotID": "FP028",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP029": {
+                    "State": "Empty",
+                    "PlotID": "FP029",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP032": {
+                    "State": "Empty",
+                    "PlotID": "FP032",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP024": {
+                    "State": "Empty",
+                    "PlotID": "FP024",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP022": {
+                    "State": "Empty",
+                    "PlotID": "FP022",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP008": {
+                    "State": "Empty",
+                    "PlotID": "FP008",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP006": {
+                    "State": "Empty",
+                    "PlotID": "FP006",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP020": {
+                    "State": "Empty",
+                    "PlotID": "FP020",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP005": {
+                    "State": "Empty",
+                    "PlotID": "FP005",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP013": {
+                    "State": "Seedling",
+                    "PlotID": "FP013",
+                    "DaysGrown": 0,
+                    "CropName": "RiceSprout"
+                },
+                "FP001": {
+                    "State": "Empty",
+                    "PlotID": "FP001",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP018": {
+                    "State": "Empty",
+                    "PlotID": "FP018",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP031": {
+                    "State": "Empty",
+                    "PlotID": "FP031",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP011": {
+                    "State": "Empty",
+                    "PlotID": "FP011",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP019": {
+                    "State": "Empty",
+                    "PlotID": "FP019",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP015": {
+                    "State": "Empty",
+                    "PlotID": "FP015",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP021": {
+                    "State": "Empty",
+                    "PlotID": "FP021",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP007": {
+                    "State": "Empty",
+                    "PlotID": "FP007",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP009": {
+                    "State": "Empty",
+                    "PlotID": "FP009",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP023": {
+                    "State": "Empty",
+                    "PlotID": "FP023",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP017": {
+                    "State": "Empty",
+                    "PlotID": "FP017",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP003": {
+                    "State": "Empty",
+                    "PlotID": "FP003",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP025": {
+                    "State": "Empty",
+                    "PlotID": "FP025",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                },
+                "FP016": {
+                    "State": "Empty",
+                    "PlotID": "FP016",
+                    "DaysGrown": 0,
+                    "CropName": ""
+                }
+            }
         }
     },
     "7597767503_MenuInfo": {
