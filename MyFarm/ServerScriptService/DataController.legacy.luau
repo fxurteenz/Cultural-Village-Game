@@ -10,14 +10,14 @@ local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild
 local TeleportFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("TeleportFunction")
 local LoadingEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("LoadingEvent") :: RemoteEvent
 
-local FarmDataManager = require(script.Parent:WaitForChild("FarmDataManager"))
+local DataManager = require(script.Parent:WaitForChild("DataManagerModule"))
 local EconomyService = require(ReplicatedStorage.Module.EconomyService)
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
 
 
 local function TeleportPlayerToPlace(player, targetPlaceId)
-    if not FarmDataManager.HostId then
+    if not DataManager.HostId then
         return
     end
 
@@ -27,22 +27,22 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     task.wait(0.2)
 
     LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล.")
-    local saveSuccess = FarmDataManager.SaveSinglePlayer(player)
+    local saveSuccess = DataManager.SaveSinglePlayer(player)
 
     while not saveSuccess do
 
         task.wait(1)
 
-        saveSuccess = FarmDataManager.SaveSinglePlayer(player)
+        saveSuccess = DataManager.SaveSinglePlayer(player)
 		LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล..")
     end
 
 	LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล...")
-    FarmDataManager.SaveWorldData()
+    DataManager.SaveWorldData()
 	LoadingEvent:FireClient(player, true,"กำลังค้นหาเซิฟเวอร์ปลายทาง...")
 
-    local hostId = FarmDataManager.HostId
-    local saveSlot = FarmDataManager.SaveSlot
+    local hostId = DataManager.HostId
+    local saveSlot = DataManager.SaveSlot
     local sessionId = tostring(hostId) .. "_" .. saveSlot
     local placeKey = "PlaceCode_" .. tostring(targetPlaceId)
 
@@ -127,11 +127,11 @@ Players.PlayerAdded:Connect(function(player)
         local hostId = teleportData.HostId
         local saveSlot = teleportData.SaveSlot
 
-        if not FarmDataManager.WorldData then
-            FarmDataManager.LoadWorldData(hostId, saveSlot)
+        if not DataManager.WorldData then
+            DataManager.LoadWorldData(hostId, saveSlot)
         end
 
-        FarmDataManager.LoadPlayerData(player, hostId, saveSlot)
+        DataManager.LoadPlayerData(player, hostId, saveSlot)
         print("[DataController] Player data Loaded : " .. player.Name .. "")
 
     else
@@ -140,18 +140,18 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    if FarmDataManager.HostId then
-        FarmDataManager.SaveSinglePlayer(player)
+    if DataManager.HostId then
+        DataManager.SaveSinglePlayer(player)
     end
 end)
 
 game:BindToClose(function()
-    if FarmDataManager.HostId then
-        FarmDataManager.UpdateMenuInfo()
-        FarmDataManager.SaveWorldData()
+    if DataManager.HostId then
+        DataManager.UpdateMenuInfo()
+        DataManager.SaveWorldData()
 
         for _, player in ipairs(Players:GetPlayers()) do
-            FarmDataManager.SaveSinglePlayer(player)
+            DataManager.SaveSinglePlayer(player)
         end
 
         task.wait(2)

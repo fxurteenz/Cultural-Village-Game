@@ -5,22 +5,8 @@ local RunService = game:GetService("RunService")
 
 local EconomyService = {}
 
-local remoteFolder = ReplicatedStorage:WaitForChild("RemoteEvent")
-local currencyChangedEvent
-local getBalanceFunction
-
-if RunService:IsServer() then
-    currencyChangedEvent = remoteFolder:FindFirstChild("CurrencyChangedEvent") or Instance.new("RemoteEvent")
-    currencyChangedEvent.Name = "CurrencyChangedEvent"
-    currencyChangedEvent.Parent = remoteFolder
-
-    getBalanceFunction = remoteFolder:FindFirstChild("GetBalanceFunction") or Instance.new("RemoteFunction")
-    getBalanceFunction.Name = "GetBalanceFunction"
-    getBalanceFunction.Parent = remoteFolder
-else
-    currencyChangedEvent = remoteFolder:WaitForChild("CurrencyChangedEvent")
-    getBalanceFunction = remoteFolder:WaitForChild("GetBalanceFunction")
-end
+local getBalanceFunction = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetBalanceFunction")
+local currencyChangedEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("CurrencyChangedEvent")
 
 local dataManager = nil
 
@@ -29,20 +15,9 @@ local function getDataManager()
     if dataManager then
         return dataManager
     end
-
-    -- Check which place we are in and require the corresponding manager
-    -- This makes the EconomyService work in both CityPlace and MyFarm
-	if game.PlaceId == 75581316239066 then -- Replace with your CityPlace PlaceId
-		dataManager = require(ServerScriptService.CityDataManager)
-	elseif game.PlaceId == 106832184588439 then -- Replace with your MyFarm PlaceId
-        dataManager = require(ServerScriptService.FarmDataManager)
-    else
-        pcall(function() dataManager = require(ServerScriptService.CityDataManager) end)
-        if not dataManager then
-            pcall(function() dataManager = require(ServerScriptService.FarmDataManager) end)
-        end
-    end
     
+    dataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
+
     if not dataManager then
         warn("EconomyService: Could not find a valid DataManager for this place.")
     end
@@ -144,7 +119,7 @@ if RunService:IsClient() then
             warn("EconomyService:ListenForCurrencyChanges requires a function as an argument.")
             return
         end
-        
+
         -- Connect the callback to the remote event
         currencyChangedEvent.OnClientEvent:Connect(callback)
     end

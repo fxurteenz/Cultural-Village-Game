@@ -1,13 +1,13 @@
-local FarmDataManager = {}
+local DataManager = {}
 local DataStoreService = game:GetService("DataStoreService")
 
 local GameSaveDS = DataStoreService:GetDataStore("FarmingGame_Data_V2")
 
-FarmDataManager.HostId = nil
-FarmDataManager.SaveSlot = nil
-FarmDataManager.WorldData = nil
-FarmDataManager.PlayersData = {}
-FarmDataManager.PlayerLoaded = Instance.new("BindableEvent")
+DataManager.HostId = nil
+DataManager.SaveSlot = nil
+DataManager.WorldData = nil
+DataManager.PlayersData = {}
+DataManager.PlayerLoaded = Instance.new("BindableEvent")
 local function getDefaultWorldData()
     return {
         ["time"] = {
@@ -36,9 +36,9 @@ local function getDefaultPlayerData(playerName)
     }
 end
 
-function FarmDataManager.LoadWorldData(hostId, saveSlot)
-    FarmDataManager.HostId = tostring(hostId)
-    FarmDataManager.SaveSlot = saveSlot
+function DataManager.LoadWorldData(hostId, saveSlot)
+    DataManager.HostId = tostring(hostId)
+    DataManager.SaveSlot = saveSlot
 
     local worldKey = tostring(hostId) .. "_" .. saveSlot .. "_World"
     print(" [DataManager] : กำลังโหลดข้อมูล World : " .. worldKey)
@@ -48,18 +48,18 @@ function FarmDataManager.LoadWorldData(hostId, saveSlot)
     end)
 
     if success and data then
-        FarmDataManager.WorldData = data
+        DataManager.WorldData = data
         print("[DataManager] : โหลด World Data สำเร็จ")
     else
-        FarmDataManager.WorldData = getDefaultWorldData()
+        DataManager.WorldData = getDefaultWorldData()
 		print("[DataManager] : สร้าง World Data ต้นใหม่")
     end
 end
 
-function FarmDataManager.LoadPlayerData(player, hostId, saveSlot)
-    if not FarmDataManager.HostId then
-        FarmDataManager.HostId = tostring(hostId)
-        FarmDataManager.SaveSlot = saveSlot
+function DataManager.LoadPlayerData(player, hostId, saveSlot)
+    if not DataManager.HostId then
+        DataManager.HostId = tostring(hostId)
+        DataManager.SaveSlot = saveSlot
     end
 
     local playerKey = tostring(hostId) .. "_" .. saveSlot .. "_" .. tostring(player.UserId)
@@ -74,26 +74,26 @@ function FarmDataManager.LoadPlayerData(player, hostId, saveSlot)
         data.player_items = data.player_items or {}
         data.coins = data.coins or 500
 
-        FarmDataManager.PlayersData[player.UserId] = data
+        DataManager.PlayersData[player.UserId] = data
     else
-        FarmDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
+        DataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
     end
 
-    FarmDataManager.PlayerLoaded:Fire(player)
+    DataManager.PlayerLoaded:Fire(player)
 end
 
-function FarmDataManager.SaveSinglePlayer(player)
-    local pData = FarmDataManager.PlayersData[player.UserId]
+function DataManager.SaveSinglePlayer(player)
+    local pData = DataManager.PlayersData[player.UserId]
     if not pData then return true end -- ถ้าไม่มีข้อมูลในแรม ถือว่าผ่าน
     
-    local playerKey = FarmDataManager.HostId .. "_" .. FarmDataManager.SaveSlot .. "_" .. tostring(player.UserId)
+    local playerKey = DataManager.HostId .. "_" .. DataManager.SaveSlot .. "_" .. tostring(player.UserId)
     -- ใช้ pcall ครอบ และรอจนกว่าจะเสร็จ (SetAsync จะ Yield รอให้อัตโนมัติ)
     local success, err = pcall(function()
         GameSaveDS:SetAsync(playerKey, pData)
     end)
     if success then
 		print("[DataManager] : บันทึกข้อมูลของ " .. player.Name .. " สำเร็จ")
-        FarmDataManager.PlayersData[player.UserId] = nil --เคลียร์แรม
+        DataManager.PlayersData[player.UserId] = nil --เคลียร์แรม
         return true
     else
 		warn("[DataManager] : บันทึกข้อมูลไม่สำเร็จ: " .. tostring(err))
@@ -101,19 +101,19 @@ function FarmDataManager.SaveSinglePlayer(player)
     end
 end
 
-function FarmDataManager.SaveWorldData()
-    if not FarmDataManager.WorldData or not FarmDataManager.HostId then
+function DataManager.SaveWorldData()
+    if not DataManager.WorldData or not DataManager.HostId then
         return
     end
 
-    local worldKey = FarmDataManager.HostId .. "_" .. FarmDataManager.SaveSlot .. "_World"
+    local worldKey = DataManager.HostId .. "_" .. DataManager.SaveSlot .. "_World"
     local success, err = pcall(function()
         GameSaveDS:UpdateAsync(worldKey, function(oldData)
             if not oldData then
-                return FarmDataManager.WorldData
+                return DataManager.WorldData
             end
             local newData = oldData
-            newData.time = FarmDataManager.WorldData.time
+            newData.time = DataManager.WorldData.time
             return newData
         end)
     end)
@@ -126,24 +126,24 @@ function FarmDataManager.SaveWorldData()
 end
 
 -- อัปเดตหน้าปกเซฟπ
-function FarmDataManager.UpdateMenuInfo()
-    if not FarmDataManager.HostId or not FarmDataManager.SaveSlot then
+function DataManager.UpdateMenuInfo()
+    if not DataManager.HostId or not DataManager.SaveSlot then
         return
     end
 
-    local menuInfoKey = FarmDataManager.HostId .. "_MenuInfo"
+    local menuInfoKey = DataManager.HostId .. "_MenuInfo"
     pcall(function()
         GameSaveDS:UpdateAsync(menuInfoKey, function(oldData)
             local saves = oldData or {}
-            if saves[FarmDataManager.SaveSlot] then
-                saves[FarmDataManager.SaveSlot].last_place_id = game.PlaceId
-                saves[FarmDataManager.SaveSlot].day = FarmDataManager.WorldData.time.day
-                saves[FarmDataManager.SaveSlot].season = FarmDataManager.WorldData.time.season
-                saves[FarmDataManager.SaveSlot].year = FarmDataManager.WorldData.time.year
+            if saves[DataManager.SaveSlot] then
+                saves[DataManager.SaveSlot].last_place_id = game.PlaceId
+                saves[DataManager.SaveSlot].day = DataManager.WorldData.time.day
+                saves[DataManager.SaveSlot].season = DataManager.WorldData.time.season
+                saves[DataManager.SaveSlot].year = DataManager.WorldData.time.year
             end
             return saves
         end)
     end)
 end
 
-return FarmDataManager
+return DataManager

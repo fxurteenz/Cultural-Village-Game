@@ -1,0 +1,42 @@
+{
+    "7597767503_save_slot1_7597767503": {
+        "player_items": {
+            "Lantern": 1,
+            "Sickle": 1
+        },
+        "player_name": "fxurteenz",
+        "playtime": 0,
+        "quests": {
+            "completed": {
+                "QT002": true,
+                "QT003": true,
+                "QT001": true,
+                "Q001": true
+            },
+            "active": []
+        },
+        "coins": 600
+    },
+    "7597767503_save_slot1_World": {
+        "time": {
+            "clock_time": 9,
+            "day": 1,
+            "year": 1,
+            "season": 1
+        },
+        "world_stats": {
+            "environment": 50,
+            "social": 50
+        }
+    },
+    "7597767503_MenuInfo": {
+        "save_slot1": {
+            "last_place_id": 75581316239066,
+            "year": 1,
+            "sarus_count": 0,
+            "day": 1,
+            "season": 1,
+            "host_coins": 500
+        }
+    }
+}
