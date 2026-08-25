@@ -1,15 +1,17 @@
-local CityDataManager = {}
+local DataManager = {}
 local DataStoreService = game:GetService("DataStoreService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameSaveDS = DataStoreService:GetDataStore("FarmingGame_Data_V2")
 
-CityDataManager.HostId = nil
-CityDataManager.SaveSlot = nil
-CityDataManager.WorldData = nil
-CityDataManager.PlayersData = {}
-CityDataManager.PlayerLoaded = Instance.new("BindableEvent")
-
+DataManager.HostId = nil
+DataManager.SaveSlot = nil
+DataManager.WorldData = nil
+DataManager.PlayersData = {}
+DataManager.PlayerLoaded = Instance.new("BindableEvent")
+DataManager.WorldLoaded = Instance.new("BindableEvent") 
+DataManager.WorldSaving = Instance.new("BindableFunction")
+DataManager.WorldTimeSync = Instance.new("BindableFunction")
+DataManager.PlayerDataLoaded = {}
 local function getDefaultWorldData()
     return {
         ["time"] = {
@@ -21,6 +23,10 @@ local function getDefaultWorldData()
         ["world_stats"] = {
             ["environment"] = 50,
             ["social"] = 50
+        },
+        ["plots"] = {
+            ["city"] = {},
+            ["farm"] = {}
         }
     }
 end
@@ -38,9 +44,9 @@ local function getDefaultPlayerData(playerName)
     }
 end
 
-function CityDataManager.LoadWorldData(hostId, saveSlot)
-    CityDataManager.HostId = tostring(hostId)
-    CityDataManager.SaveSlot = saveSlot
+function DataManager.LoadWorldData(hostId, saveSlot)
+    DataManager.HostId = tostring(hostId)
+    DataManager.SaveSlot = saveSlot
 
     local worldKey = tostring(hostId) .. "_" .. saveSlot .. "_World"
     print(" [DataManager] : กำลังโหลดข้อมูล World : " .. worldKey)
@@ -50,18 +56,33 @@ function CityDataManager.LoadWorldData(hostId, saveSlot)
     end)
 
     if success and data then
-        CityDataManager.WorldData = data
+        DataManager.WorldData = data
         print("[DataManager] : โหลด World Data สำเร็จ")
     else
-        CityDataManager.WorldData = getDefaultWorldData()
+        DataManager.WorldData = getDefaultWorldData()
 		print("[DataManager] : สร้าง World Data ต้นใหม่")
     end
+
+    local synctime_res, synctime_msg = pcall(function()
+        return DataManager.WorldTimeSync:Invoke()
+    end)
+    local retry_attemp = 0
+    while not synctime_res do
+        warn("[DATAMANAGER] : time sync fail ".. synctime_msg.." ".. retry_attemp .." retrying...")
+        retry_attemp = retry_attemp + 1
+        task.wait(0.5)
+        synctime_res, synctime_msg = pcall(function()
+            return DataManager.WorldTimeSync:Invoke()
+        end)
+    end
+    print("[DATAMANAGER]: time sync res ", synctime_msg, synctime_res)
+    DataManager.WorldLoaded:Fire()
 end
 
-function CityDataManager.LoadPlayerData(player, hostId, saveSlot)
-    if not CityDataManager.HostId then
-        CityDataManager.HostId = tostring(hostId)
-        CityDataManager.SaveSlot = saveSlot
+function DataManager.LoadPlayerData(player, hostId, saveSlot)
+    if not DataManager.HostId then
+        DataManager.HostId = tostring(hostId)
+        DataManager.SaveSlot = saveSlot
     end
 
     local playerKey = tostring(hostId) .. "_" .. saveSlot .. "_" .. tostring(player.UserId)
@@ -76,26 +97,28 @@ function CityDataManager.LoadPlayerData(player, hostId, saveSlot)
         data.player_items = data.player_items or {}
         data.coins = data.coins or 500
 
-        CityDataManager.PlayersData[player.UserId] = data
+        DataManager.PlayersData[player.UserId] = data
+        DataManager.PlayerDataLoaded[player.UserId] = true
     else
-        CityDataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
+        warn("[DATAMANAGER]: can't get player "..player.UserId.."'s data writing an empty data")
+        DataManager.PlayersData[player.UserId] = getDefaultPlayerData(player.Name)
     end
 
-    CityDataManager.PlayerLoaded:Fire(player)
+    DataManager.PlayerLoaded:Fire(player)
 end
 
-function CityDataManager.SaveSinglePlayer(player)
-    local pData = CityDataManager.PlayersData[player.UserId]
+function DataManager.SaveSinglePlayer(player)
+    local pData = DataManager.PlayersData[player.UserId]
     if not pData then return true end -- ถ้าไม่มีข้อมูลในแรม ถือว่าผ่าน
     
-    local playerKey = CityDataManager.HostId .. "_" .. CityDataManager.SaveSlot .. "_" .. tostring(player.UserId)
+    local playerKey = DataManager.HostId .. "_" .. DataManager.SaveSlot .. "_" .. tostring(player.UserId)
     -- ใช้ pcall ครอบ และรอจนกว่าจะเสร็จ (SetAsync จะ Yield รอให้อัตโนมัติ)
     local success, err = pcall(function()
         GameSaveDS:SetAsync(playerKey, pData)
     end)
     if success then
 		print("[DataManager] : บันทึกข้อมูลของ " .. player.Name .. " สำเร็จ")
-        CityDataManager.PlayersData[player.UserId] = nil --เคลียร์แรม
+        DataManager.PlayersData[player.UserId] = nil --เคลียร์แรม
         return true
     else
 		warn("[DataManager] : บันทึกข้อมูลไม่สำเร็จ: " .. tostring(err))
@@ -103,49 +126,52 @@ function CityDataManager.SaveSinglePlayer(player)
     end
 end
 
-function CityDataManager.SaveWorldData()
-    if not CityDataManager.WorldData or not CityDataManager.HostId then
+function DataManager.SaveWorldData()
+    if not DataManager.WorldData or not DataManager.HostId then
         return
     end
 
-    local worldKey = CityDataManager.HostId .. "_" .. CityDataManager.SaveSlot .. "_World"
+    local worldKey = DataManager.HostId .. "_" .. DataManager.SaveSlot .. "_World"
     local success, err = pcall(function()
         GameSaveDS:UpdateAsync(worldKey, function(oldData)
             if not oldData then
-                return CityDataManager.WorldData
+                return DataManager.WorldData
             end
             local newData = oldData
-            newData.time = CityDataManager.WorldData.time
+            -- newData.time = DataManager.WorldData.time
+            newData = DataManager.WorldData
             return newData
         end)
     end)
 
     if success then
         print("[DataManager] บันทึก WorldData สำเร็จ!")
+        return true,err
     else
 		warn("[DataManager] บันทึก WorldData ไม่สำเร็จ: " .. tostring(err))
+        return false,err
     end
 end
 
 -- อัปเดตหน้าปกเซฟπ
-function CityDataManager.UpdateMenuInfo()
-    if not CityDataManager.HostId or not CityDataManager.SaveSlot then
+function DataManager.UpdateMenuInfo()
+    if not DataManager.HostId or not DataManager.SaveSlot then
         return
     end
 
-    local menuInfoKey = CityDataManager.HostId .. "_MenuInfo"
+    local menuInfoKey = DataManager.HostId .. "_MenuInfo"
     pcall(function()
         GameSaveDS:UpdateAsync(menuInfoKey, function(oldData)
             local saves = oldData or {}
-            if saves[CityDataManager.SaveSlot] then
-                saves[CityDataManager.SaveSlot].last_place_id = game.PlaceId
-                saves[CityDataManager.SaveSlot].day = CityDataManager.WorldData.time.day
-                saves[CityDataManager.SaveSlot].season = CityDataManager.WorldData.time.season
-                saves[CityDataManager.SaveSlot].year = CityDataManager.WorldData.time.year
+            if saves[DataManager.SaveSlot] then
+                saves[DataManager.SaveSlot].last_place_id = game.PlaceId
+                saves[DataManager.SaveSlot].day = DataManager.WorldData.time.day
+                saves[DataManager.SaveSlot].season = DataManager.WorldData.time.season
+                saves[DataManager.SaveSlot].year = DataManager.WorldData.time.year
             end
             return saves
         end)
     end)
 end
 
-return CityDataManager
+return DataManager

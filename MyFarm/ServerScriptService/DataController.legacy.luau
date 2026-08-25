@@ -10,39 +10,41 @@ local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild
 local TeleportFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("TeleportFunction")
 local LoadingEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("LoadingEvent") :: RemoteEvent
 
-local FarmDataManager = require(script.Parent:WaitForChild("FarmDataManager"))
+local DataManager = require(script.Parent:WaitForChild("DataManagerModule"))
 local EconomyService = require(ReplicatedStorage.Module.EconomyService)
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
-
-
+-- TELEPORT CONTROL --
 local function TeleportPlayerToPlace(player, targetPlaceId)
-    if not FarmDataManager.HostId then
+    if not DataManager.HostId then
         return
     end
 
-    LoadingEvent:FireClient(player,true,"กำลังไปที่ไร่...")
+    LoadingEvent:FireClient(player, true, "กำลังเตรียมข้อมูล.")
     print(player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " .. targetPlaceId)
 
     task.wait(0.2)
 
-    LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล.")
-    local saveSuccess = FarmDataManager.SaveSinglePlayer(player)
-
+    LoadingEvent:FireClient(player, true, "กำลังเตรียมข้อมูล..")
+    local saveSuccess = DataManager.SaveSinglePlayer(player)
+    print("[save single player result] : ", saveSuccess)
+    
     while not saveSuccess do
-
         task.wait(1)
-
-        saveSuccess = FarmDataManager.SaveSinglePlayer(player)
-		LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล..")
+        saveSuccess = DataManager.SaveSinglePlayer(player)
+        LoadingEvent:FireClient(player, true, "กำลังเตรียมข้อมูล...")
     end
 
-	LoadingEvent:FireClient(player, true,"กำลังเตรียมข้อมูล...")
-    FarmDataManager.SaveWorldData()
-	LoadingEvent:FireClient(player, true,"กำลังค้นหาเซิฟเวอร์ปลายทาง...")
+    LoadingEvent:FireClient(player, true, "กำลังเตรียมข้อมูล.")
+    
+    local syncRes, syncMsg = pcall(function() return DataManager.WorldSaving:Invoke() end)
+    print("[DataController] วาร์ปข้ามแมพ - ซิงค์ข้อมูลแปลง: ", syncRes, syncMsg)
 
-    local hostId = FarmDataManager.HostId
-    local saveSlot = FarmDataManager.SaveSlot
+    DataManager.SaveWorldData()
+    LoadingEvent:FireClient(player, true, "กำลังค้นหาเซิฟเวอร์ปลายทาง...")
+
+    local hostId = DataManager.HostId
+    local saveSlot = DataManager.SaveSlot
     local sessionId = tostring(hostId) .. "_" .. saveSlot
     local placeKey = "PlaceCode_" .. tostring(targetPlaceId)
 
@@ -51,33 +53,55 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     end)
 
     local accessCode = nil
+    local createServerSuccess = false
 
     if success and sessionData then
         accessCode = sessionData[placeKey]
         if not accessCode then
-			LoadingEvent:FireClient(player, true,"กำลังเตรียมเซิฟเวอร์ใหม่...")
+            LoadingEvent:FireClient(player, true, "กำลังเตรียมเซิฟเวอร์ใหม่...")
+            
+            createServerSuccess, accessCode = pcall(function()
+                return TeleportService:ReserveServerAsync(targetPlaceId)
+            end)
+            
+            if not createServerSuccess then
+                warn("ReserveServer failed: " .. tostring(accessCode))
+                LoadingEvent:FireClient(player, false)
+                return false, "ไม่สามารถสร้างเซิฟเวอร์สำรองได้"
+            end
 
-            accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
             sessionData[placeKey] = accessCode
-
             activeSessions:SetAsync(sessionId, sessionData, 86400)
             print("สร้าง ReserveServer ใหม่สำหรับ Placeเป้าหมาย: " .. targetPlaceId)
         else
-			LoadingEvent:FireClient(player, true,"กำลังเตรียมเซิฟเวอร์ปลายทาง...")
+            LoadingEvent:FireClient(player, true, "กำลังเตรียมเซิฟเวอร์ปลายทาง...")
             print("พบ ReserveServer เดิม กำลังส่งผู้เล่นไปเข้าร่วม...")
         end
     else
         warn("ไม่พบข้อมูล Session กำลังสร้างใหม่...")
-		LoadingEvent:FireClient(player, true,"กำลังเตรียมเซิฟเวอร์ใหม่...")
-        accessCode = TeleportService:ReserveServerAsync(targetPlaceId)
+        LoadingEvent:FireClient(player, true, "กำลังเตรียมเซิฟเวอร์ใหม่...")
+        
+        createServerSuccess, accessCode = pcall(function()
+            return TeleportService:ReserveServerAsync(targetPlaceId)
+        end)
+        
+        if not createServerSuccess then
+            warn("ReserveServer failed: " .. tostring(accessCode))
+            LoadingEvent:FireClient(player, true, "ไม่สามารถสร้างเซิฟเวอร์")
+            task.wait(1.5)
+            LoadingEvent:FireClient(player, false)
+            return false, "ไม่สามารถสร้างเซิฟเวอร์สำรองได้"
+        end
+
         local newData = {
             HostId = hostId,
             [placeKey] = accessCode
         }
         activeSessions:SetAsync(sessionId, newData, 86400)
     end
-	LoadingEvent:FireClient(player, true,"กำลังย้ายผู้เล่น...")
-    -- เตรียมข้อมูลแพ็คใส่กระเป๋าผู้เล่น
+
+    LoadingEvent:FireClient(player, true, "กำลังย้ายผู้เล่น...")
+
     local teleportOptions = Instance.new("TeleportOptions")
     teleportOptions.ReservedServerAccessCode = accessCode
     teleportOptions:SetTeleportData({
@@ -86,19 +110,19 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         SessionId = sessionId
     })
 
-    -- สั่งวาร์ป!
-    local success, err = pcall(function()
+    local teleportSuccess, err = pcall(function()
         TeleportService:TeleportAsync(targetPlaceId, {player}, teleportOptions)
     end)
-    if not success then
+
+    if not teleportSuccess then
         warn("TeleportAsync failed for " .. player.Name .. ": " .. tostring(err))
-        LoadingEvent:FireClient(player, true, "การวาร์ปล้มเหลว กรุณาลองใหม่อีกครั้ง")
+        LoadingEvent:FireClient(player, true, "ไม่สามารถย้ายผู้เล่นได้ ลองใหม่อีกทีนะ !")
         task.wait(1)
-        LoadingEvent:FireClient(player, false)
-        return false
+        LoadingEvent:FireClient(player, false) -- ปิด GUI
+        return false, "ไม่สามารถ teleport ผู้เล่นได้"
     end
-    task.wait(3)
-    LoadingEvent:FireClient(player, false)
+
+    task.wait(1)
     return true
 end
 
@@ -109,6 +133,7 @@ end)
 TeleportFunction.OnInvoke = function(player, targetPlaceId)
    return TeleportPlayerToPlace(player, targetPlaceId)
 end
+-- END TELEPORT CONTROL --
 
 Players.PlayerAdded:Connect(function(player)
     local joinData = player:GetJoinData()
@@ -127,11 +152,11 @@ Players.PlayerAdded:Connect(function(player)
         local hostId = teleportData.HostId
         local saveSlot = teleportData.SaveSlot
 
-        if not FarmDataManager.WorldData then
-            FarmDataManager.LoadWorldData(hostId, saveSlot)
+        if not DataManager.WorldData then
+            DataManager.LoadWorldData(hostId, saveSlot)
         end
 
-        FarmDataManager.LoadPlayerData(player, hostId, saveSlot)
+        DataManager.LoadPlayerData(player, hostId, saveSlot)
         print("[DataController] Player data Loaded : " .. player.Name .. "")
 
     else
@@ -140,18 +165,25 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
-    if FarmDataManager.HostId then
-        FarmDataManager.SaveSinglePlayer(player)
+    if DataManager.HostId then
+        DataManager.SaveSinglePlayer(player)
     end
 end)
 
 game:BindToClose(function()
-    if FarmDataManager.HostId then
-        FarmDataManager.UpdateMenuInfo()
-        FarmDataManager.SaveWorldData()
+    if DataManager.HostId then
+        local res, msg = pcall(function() return DataManager.WorldSaving:Invoke() end)
+        
+        while not res do
+            task.wait(1)
+            res, msg = pcall(function() return DataManager.WorldSaving:Invoke() end)
+        end
+
+        DataManager.SaveWorldData()
+        DataManager.UpdateMenuInfo()
 
         for _, player in ipairs(Players:GetPlayers()) do
-            FarmDataManager.SaveSinglePlayer(player)
+            DataManager.SaveSinglePlayer(player)
         end
 
         task.wait(2)

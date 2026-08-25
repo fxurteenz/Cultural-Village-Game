@@ -1,74 +1,41 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+
 local QuestManager = require(ReplicatedStorage:WaitForChild("Module"):WaitForChild("QuestModule"))
 local GetQuestDataRF = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetQuestData")
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local QuestNotiEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestNotiEvent")
 local BindableQuestFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("QuestFunction")
+local GameManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 GetQuestDataRF.OnServerInvoke = function(player)
     return QuestManager.GetAllQuestData(player)
 end
 
-QuestEvent.OnServerEvent:Connect(function(player, questID, amount, event, targetName)
-    if event == "accept" then
-
-        local acceptResult, acceptMessage = QuestManager.AcceptQuest(player, questID)
-        print("Accept :", questID, acceptResult, "ข้อความ:", acceptMessage)
-
-        if acceptResult then
-            local questData = QuestManager.GetQuestInfo(questID)
-
-            if questData then
-                local message = string.format("ภารกิจใหม่ : %s", questData.Description)
-                QuestEvent:FireClient(player, "refresh")
-                QuestNotiEvent:FireClient(player, message, "accept")
-            end
-        end
-
-    elseif event == "submit" then
-
+local function ProcessQuestAction(targetPlayer, questID, amount, action, targetName)
+    if action == "submit" then
         local questInfo = QuestManager.GetQuestInfo(questID)
         if questInfo and questInfo.TargetAmount == 1 then
-            QuestManager.AddProgress(player, questID, 1, targetName)
+            QuestManager.AddProgress(targetPlayer, questID, 1, targetName)
         end
 
-        local submitResult, submitMessage = QuestManager.SubmitQuest(player, questID)
+        local submitResult, submitMessage = QuestManager.SubmitQuest(targetPlayer, questID)
         print("Submit:", questID, submitResult, "ข้อความ:", submitMessage)
 
         if submitResult then
-            QuestEvent:FireClient(player, "refresh")
-        end
-
-        QuestNotiEvent:FireClient(player, submitMessage)
-    elseif event == "update" then
-        local updateResult, updateMessage = QuestManager.AddProgress(player, questID, amount, targetName)
-        if updateResult then
-            QuestEvent:FireClient(player, "refresh")
-        end
-    end
-end)
-
-BindableQuestFunction.OnInvoke = function(player, questID, amount, event, targetName)
-    if event == "submit" then
-        local questInfo = QuestManager.GetQuestInfo(questID)
-        if questInfo and questInfo.TargetAmount == 1 then
-            QuestManager.AddProgress(player, questID, 1, targetName)
-        end
-
-        local submitResult, submitMessage = QuestManager.SubmitQuest(player, questID)
-        print("Submit:", questID, submitResult, "ข้อความ:", submitMessage)
-
-        if submitResult then
-            QuestEvent:FireClient(player, "refresh")
+            QuestEvent:FireClient(targetPlayer, "refresh")
         else
             warn("cannot submit quest")
         end
 
-        QuestNotiEvent:FireClient(player, submitMessage)
-        return submitResult
-    elseif event == "accept" then
-        local acceptResult, acceptMessage = QuestManager.AcceptQuest(player, questID)
+        QuestNotiEvent:FireClient(targetPlayer, submitMessage)
+        return submitResult, submitMessage
+
+    elseif action == "accept" then
+        local acceptResult, acceptMessage = QuestManager.AcceptQuest(targetPlayer, questID)
         print("Accept :", questID, acceptResult, "ข้อความ:", acceptMessage)
 
         if acceptResult then
@@ -76,11 +43,30 @@ BindableQuestFunction.OnInvoke = function(player, questID, amount, event, target
 
             if questData then
                 local message = string.format("ภารกิจใหม่ : %s", questData.Description)
-                QuestEvent:FireClient(player, "refresh")
-                QuestNotiEvent:FireClient(player, message, "accept")
+                QuestEvent:FireClient(targetPlayer, "refresh")
+                QuestNotiEvent:FireClient(targetPlayer, message, "accept")
             end
         end
 
-        return acceptResult
+        return acceptResult, acceptMessage
     end
 end
+
+QuestEvent.OnServerEvent:Connect(function(player, questID, amount, action, targetName)
+    ProcessQuestAction(player, questID, amount, action, targetName)
+end)
+
+BindableQuestFunction.OnInvoke = function(player, questID, amount, action, targetName)
+    if player == "all_player" then
+        for _, p in ipairs(Players:GetPlayers()) do
+            ProcessQuestAction(p, questID, amount, action, targetName)
+        end
+        return true, "ดำเนินการกับผู้เล่นทุกคนสำเร็จ"
+    else
+        return ProcessQuestAction(player, questID, amount, action, targetName)
+    end
+end
+
+GameManager.PlayerLoaded.Event:Connect(function(player)
+    QuestEvent:FireClient(player, "refresh")
+end)

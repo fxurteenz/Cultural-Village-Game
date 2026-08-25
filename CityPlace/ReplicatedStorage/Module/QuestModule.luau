@@ -3,7 +3,7 @@ local QuestData = require(game.ReplicatedStorage:WaitForChild("GameDataModule"):
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local DataManager = require(ServerScriptService:WaitForChild("CityDataManager"))
+local DataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 -- ==========================================
 -- 1. ฟังก์ชันรับเควส

@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local ServerStorage = game:GetService("ServerStorage")
 
-local CityDataManager = require(ServerScriptService:WaitForChild("CityDataManager"))
+local DataManager = require(ServerScriptService:WaitForChild("DataManagerModule"))
 
 local ShopEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("ShopEvent")
 local GiveItemBindable = ServerStorage:WaitForChild("BindableEvent"):WaitForChild("GiveItemBindable")
@@ -25,7 +25,7 @@ local shopItems = {
 local function onPurchaseRequest(player, action, itemId, amount)
 	if action ~= "PurchaseItem" then return end
 
-	local pData = CityDataManager.PlayersData[player.UserId]
+	local pData = DataManager.PlayersData[player.UserId]
 	if not pData then
 		warn("ไม่สามารถทำรายการซื้อได้เนื่องจากข้อมูลผู้เล่น " .. player.Name .. " ยังไม่ถูกโหลด")
 		return
