@@ -5,16 +5,19 @@ local EventManager = require(ServerScriptService:WaitForChild("SpecialEventManag
 local SpecialEventTrigger = game:GetService("ServerStorage"):WaitForChild("BindableFunction"):WaitForChild("SpecialEventFunction")
 local BindableQuestFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("QuestFunction")
 
-SpecialEventTrigger.OnInvoke = function(eventId, ...)
+SpecialEventTrigger.OnInvoke = function(eventId,eventPosition, ...)
 
     if eventId then
-        local check_res, check_data = pcall(function()
-            return EventManager.checkSpecialEvent(eventId)
-        end)
-        if not check_res then return check_res,check_data end
+		local check_res, isSuccess, check_data = pcall(function()
+			return EventManager.checkSpecialEvent(eventId)
+		end)
+		if not check_res or not isSuccess then 
+			return false, check_data 
+		end
 
-        print("[SPECIAL_EVENT_CONTROLLER] : get ",eventId," event data ", HttpService:JSONDecode(check_data))
-        if check_data.eventQuest then
+		print("[SPECIAL_EVENT_CONTROLLER] : get ",eventId," event data ", HttpService:JOS(check_data))
+		local event_quest = check_data.eventQuest or nil
+		if event_quest then
             task.spawn(function()
                 local questId = check_data.eventQuest.questId
                 local questAction = check_data.eventQuest.questAction
@@ -30,7 +33,7 @@ SpecialEventTrigger.OnInvoke = function(eventId, ...)
         end
 
         if check_data.eventName == "CRANE_VISIT" then
-            return EventManager.CRANE_VISIT()
+            return EventManager.CRANE_VISIT(eventPosition)
         end
     end
     -- if EventHandlers[eventId] then

@@ -73,7 +73,8 @@ local function UpdatePlotVisual(oldPlot)
 				local eventId = specialEventData.eventId 
 				if specialEventData.atStage == stateIndex then
 					local invoke_res, invoke_data = pcall(function()
-						return SpecialEventTrigger:Invoke(eventId)
+                        local plotPosition = oldPlot:GetPivot().Position
+						return SpecialEventTrigger:Invoke(eventId, plotPosition)
 					end)
 
 					if invoke_res then
