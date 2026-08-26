@@ -29,13 +29,10 @@ local function UpdatePlotVisual(oldPlot)
 	local cropName = oldPlot:GetAttribute("CropName")
 	local daysGrown = oldPlot:GetAttribute("DaysGrown")
 	local state = oldPlot:GetAttribute("State")
-    local stateIndex = tonumber(daysGrown)
 	local newPlotTemplate = nil
 
-	-- ==========================================
-	-- เช็คว่าแปลงว่างไหม
-	-- ==========================================
 	if cropName == nil or cropName == "" then
+		-- (โค้ดดึงโมเดลแปลงว่างเหมือนเดิม)
 		local plotTypeFolder = nil
 		if CollectionService:HasTag(oldPlot, "FieldPlot") then
 			plotTypeFolder = "FieldPlot"
@@ -49,15 +46,15 @@ local function UpdatePlotVisual(oldPlot)
 				newPlotTemplate = folder:FindFirstChild(plotTypeFolder)
 			end
 		end
-
 	else
-		-- กรณีมีพืชปลูกอยู่ (cropName ไม่เป็นค่าว่าง)
 		local cropInfo = CropDatabase.GetCropInfo(cropName)
 
 		if cropInfo then
 			if daysGrown >= cropInfo.MaxDays then
 				daysGrown = cropInfo.MaxDays
 			end
+			
+			local stateIndex = tonumber(daysGrown)
 
 			local stageData = cropInfo.Stages[stateIndex]
 			if stageData then
@@ -71,21 +68,21 @@ local function UpdatePlotVisual(oldPlot)
 				end
 			end
 
-            local specialEventData = cropInfo.SpecialEvent
-            if specialEventData then
-                local eventId = cropInfo.eventId
-                if specialEventData.atStage == stateIndex then
-                    local invoke_res, invoke_data = pcall(function()
-                        return SpecialEventTrigger:Invoke(eventId)
-                    end)
+			local specialEventData = cropInfo.SpecialEvent
+			if specialEventData then
+				local eventId = specialEventData.eventId 
+				if specialEventData.atStage == stateIndex then
+					local invoke_res, invoke_data = pcall(function()
+						return SpecialEventTrigger:Invoke(eventId)
+					end)
 
-                    if invoke_res then
-                        print("[PLOT_CONTROLLER] ".. invoke_data)
-                    else
-                        warn("[PLOT_CONTROLLER] ".. invoke_data)
-                    end
-                end
-            end
+					if invoke_res then
+						print("[PLOT_CONTROLLER] ".. tostring(invoke_data))
+					else
+						warn("[PLOT_CONTROLLER] ".. tostring(invoke_data))
+					end
+				end
+			end
 		end
 	end
 
@@ -95,21 +92,17 @@ local function UpdatePlotVisual(oldPlot)
 	if newPlotTemplate then
 		local newPlot = newPlotTemplate:Clone()
         print(newPlot.Name)
-		-- 1. ย้ายตำแหน่งร่างใหม่ (ใช้ PivotTo ตามที่เราคุยกันเพื่อลาก Model มาทั้งยวง)
 		newPlot:PivotTo(oldPlot:GetPivot())
 		newPlot.Parent = oldPlot.Parent
 
-		-- 2. คัดลอกข้อมูล (Attributes) ทั้งหมดจากของเก่ามาใส่ของใหม่
 		for attrName, attrValue in pairs(oldPlot:GetAttributes()) do
 			newPlot:SetAttribute(attrName, attrValue)
 		end
 
-		-- 3. คัดลอก Tags เพื่อให้ CollectionService ทำงานต่อเนื่อง
 		for _, tag in ipairs(CollectionService:GetTags(oldPlot)) do
 			CollectionService:AddTag(newPlot, tag)
 		end
 
-		-- 4. ลบก้อน Plot อันเก่าทิ้ง
 		oldPlot:Destroy()
         --print("[PLOTCONTROLLER] : updated plot visual ".. cropName.. " -> ".. newPlot:GetAttribute("CropName"))
 	else
@@ -343,8 +336,20 @@ DayValue.Changed:Connect(function(newDay)
 				local state = plotData.State
 				local cropName = plotData.CropName
 
-				if cropName and cropName ~= "" and state ~= "Empty" and state ~= "ReadyToHarvest" then
-					plotData.DaysGrown = (plotData.DaysGrown or 0) + 1
+				if cropName and cropName ~= "" and state ~= "Empty" then
+					local cropInfo = CropDatabase.GetCropInfo(cropName)
+
+					if cropInfo then
+						local currentDays = plotData.DaysGrown or 0
+
+						if currentDays < cropInfo.MaxDays then
+							plotData.DaysGrown = currentDays + 1
+							local newState = cropInfo.Stages[plotData.DaysGrown].State
+							if newState then
+								plotData.State = newState
+							end
+						end
+					end
 				end
 			end
 		end
