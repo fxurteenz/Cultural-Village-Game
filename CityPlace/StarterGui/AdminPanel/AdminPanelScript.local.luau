@@ -2,6 +2,7 @@ local Player = game:GetService("Players").LocalPlayer :: Player
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local ServerGiveItemEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("GiveItemEvent")
+local testSpecialEvent = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("TestSpecialEvent")
 
 -- อ้างอิงไปยังตำแหน่งของ UI ต่างๆ
 local adminPanel = script.Parent
@@ -9,11 +10,12 @@ local mainFrame = adminPanel:WaitForChild("Frame")
 local questPage = mainFrame:WaitForChild("QuestEventTest")
 
 local player_id = tostring(Player.UserId)
-if player_id ~= "7597767503" then
+if player_id == "7597767503" then
 	mainFrame.Visible = true
 else
-	mainFrame.Visible = true
+	mainFrame.Visible = false
 end
+
 --[[
 	QUEST EVENT TESTER
 ]]
@@ -69,4 +71,31 @@ sendServerItemEventButton.MouseButton1Click:Connect(function()
 
 	serverItemNameBox.Text = ""
 	serverItemAmountBox.Text = ""
+end)
+
+--[[
+	SPECIALEVENT TRIGGER TEST
+]]
+
+local specialEventTestPage = mainFrame:WaitForChild("SpecialEventTest")
+local specialEventId = specialEventTestPage:WaitForChild("EventId")
+local specialEventPosition = specialEventTestPage:WaitForChild("Position")
+local specialEventTestBtn = specialEventTestPage:WaitForChild("TextButton")
+
+specialEventTestBtn.MouseButton1Click:Connect(function()
+	local eventId = specialEventId.Text
+	local eventPosition = specialEventPosition.Text
+	if eventId == "" then
+		warn("[DevPanel] กรุณากรอกข้อมูลให้ครบถ้วน")
+	end
+	
+	local invoke_res, check_res, invoke_data = pcall(function()
+		return testSpecialEvent:InvokeServer(eventId, eventPosition)
+	end)
+
+	if invoke_res and check_res then
+		print("[PLOT_CONTROLLER] ".. tostring(invoke_data))
+	else
+		warn("[PLOT_CONTROLLER] ".. tostring(invoke_data))
+	end
 end)

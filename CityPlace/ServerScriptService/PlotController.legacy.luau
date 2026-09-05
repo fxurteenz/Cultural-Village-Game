@@ -114,6 +114,59 @@ end
 -- ==========================================
 -- ฟังก์ชัน setup ProximityPrompt
 -- ==========================================
+local function checkQuest(questGoal, fromQuest, player)
+	if questGoal == "CropThis" then
+		if not fromQuest  then
+			warn("[Plot Handler] : found `QuestGoal` atrr (%s), but undefined `FromQuest` attr.",questGoal)
+			return	
+		end
+
+		local updateResult, updateMessage = QuestManager.AddProgress(player, fromQuest, 1)
+
+		if updateResult then
+			local questInfo = QuestManager.GetQuestInfo(fromQuest)
+			QuestEvent:FireClient(player)
+			if updateMessage == "ReadyToSubmit" then
+				QuestNotiEvent:FireClient(player,questInfo.ReadyToSubmitMessage)
+			elseif updateMessage == "Updated" then
+				QuestNotiEvent:FireClient(player,questInfo.UpdatedMessage)
+			end
+
+			print("อัปเดตเควสปลูกพืชสำเร็จ!")
+		end
+	end
+end
+
+local function harvestCrop(plot, cropName, player)
+	if plot:GetAttribute("State") == "ReadyToHarvest" then
+		-- 1. ดึงข้อมูลพืชจาก Database
+		local cropInfo = CropDatabase.GetCropInfo(cropName)
+
+		if cropInfo and cropInfo.HarvestItem then
+			local itemToGive = cropInfo.HarvestItem
+			local amountToGive = cropInfo.HarvestAmount or 1 -- ถ้าไม่ได้ตั้งค่าไว้ ให้ default เป็น 1
+
+			-- 2. มอบผลผลิตเข้ากระเป๋าผู้เล่นตามข้อมูลใน Database
+			GiveItemBindable:Fire(player, itemToGive, amountToGive)
+			print(player.Name .. " เกี่ยวข้าว ได้รับ " .. itemToGive .. " จำนวน " .. amountToGive .. " ชิ้น!")
+		else
+			warn("❌ ไม่พบข้อมูล HarvestItem สำหรับพืช: " .. tostring(cropName))
+		end
+
+		-- 3. รีเซ็ตข้อมูลแปลงกลับเป็นแปลงว่าง
+		plot:SetAttribute("CropName", "")
+		plot:SetAttribute("State", "Empty")
+		plot:SetAttribute("DaysGrown", 0)
+
+		-- 4. เปิด Prompt ให้พร้อมปลูกใหม่
+		prompt.Enabled = true
+
+		-- 5. สลับโมเดลกลับเป็นแปลงดินเปล่า
+		UpdatePlotVisual(plot)
+	else
+		print("พืชยังไม่พร้อมเก็บเกี่ยว!")
+	end
+end
 
 local function setupPlot(plot)
 	local prompt = plot:FindFirstChildOfClass("ProximityPrompt")
@@ -135,46 +188,13 @@ local function setupPlot(plot)
 		-- ==========================================
 		-- กรณีที่ 1: ถืออุปกรณ์เก็บเกี่ยว (เช่น เคียว)
 		-- ==========================================
+		local cropName = equippedTool:GetAttribute("CropName")
+		local requiredPlot = equippedTool:GetAttribute("RequiredPlot")
+		local questGoal = equippedTool:GetAttribute("QuestGoal")
+		local fromQuest = equippedTool:GetAttribute("QuestId")
 		if toolType == "Harvest" then
-			if plot:GetAttribute("State") == "ReadyToHarvest" then
-				local cropName = plot:GetAttribute("CropName")
-
-				-- 1. ดึงข้อมูลพืชจาก Database
-				local cropInfo = CropDatabase.GetCropInfo(cropName)
-
-				if cropInfo and cropInfo.HarvestItem then
-					local itemToGive = cropInfo.HarvestItem
-					local amountToGive = cropInfo.HarvestAmount or 1 -- ถ้าไม่ได้ตั้งค่าไว้ ให้ default เป็น 1
-
-					-- 2. มอบผลผลิตเข้ากระเป๋าผู้เล่นตามข้อมูลใน Database
-					GiveItemBindable:Fire(player, itemToGive, amountToGive)
-					print(player.Name .. " เกี่ยวข้าว ได้รับ " .. itemToGive .. " จำนวน " .. amountToGive .. " ชิ้น!")
-				else
-					warn("❌ ไม่พบข้อมูล HarvestItem สำหรับพืช: " .. tostring(cropName))
-				end
-
-				-- 3. รีเซ็ตข้อมูลแปลงกลับเป็นแปลงว่าง
-				plot:SetAttribute("CropName", "")
-				plot:SetAttribute("State", "Empty")
-				plot:SetAttribute("DaysGrown", 0)
-
-				-- 4. เปิด Prompt ให้พร้อมปลูกใหม่
-				prompt.Enabled = true
-
-				-- 5. สลับโมเดลกลับเป็นแปลงดินเปล่า
-				UpdatePlotVisual(plot)
-			else
-				print("พืชยังไม่พร้อมเก็บเกี่ยว!")
-			end
+			harvestCrop(plot, cropName, player)
 		elseif toolType == "Crop" then
-			-- ==========================================
-			-- กรณีที่ 2: ถืออุปกรณ์ปลูก (เมล็ดพันธุ์/ต้นกล้า)
-			-- ==========================================
-			local cropName = equippedTool:GetAttribute("CropName")
-			local requiredPlot = equippedTool:GetAttribute("RequiredPlot")
-			local questGoal = equippedTool:GetAttribute("QuestGoal")
-			local fromQuest = equippedTool:GetAttribute("QuestId")
-
 			if not cropName or not requiredPlot then
 				print("ไอเทมที่คุณถือไม่ใช่เมล็ดพันธุ์ หรือตั้งค่าไม่ครบ!")
 				return
@@ -197,30 +217,10 @@ local function setupPlot(plot)
 					ConsumeItemEvent:Fire(player, equippedTool.Name, 1)
 				end
 
-				UpdatePlotVisual(plot)
+				UpdatePlotVisual(plot)				
+				checkQuest(questGoal, fromQuest, player)
 				print(player.Name .. " ปลูก " .. cropName .. " สำเร็จ!")
-				
-				if questGoal == "CropThis" then
-					if not fromQuest  then
-						warn("[Plot Handler] : found `QuestGoal` atrr (%s), but undefined `FromQuest` attr.",questGoal)
-						return	
-					end
-					
-					local updateResult, updateMessage = QuestManager.AddProgress(player, fromQuest, 1)
 
-					if updateResult then
-						local questInfo = QuestManager.GetQuestInfo(fromQuest)
-						QuestEvent:FireClient(player)
-						if updateMessage == "ReadyToSubmit" then
-							QuestNotiEvent:FireClient(player,questInfo.ReadyToSubmitMessage)
-						elseif updateMessage == "Updated" then
-							QuestNotiEvent:FireClient(player,questInfo.UpdatedMessage)
-						end
-
-						print("อัปเดตเควสปลูกพืชสำเร็จ!")
-					end
-				end
-				
 			elseif plot:GetAttribute("State") ~= "Empty" then
 				print("แปลงนี้มีพืชปลูกอยู่แล้ว!")
 			else
@@ -327,7 +327,7 @@ CollectionService:GetInstanceAddedSignal("NormalPlot"):Connect(setupPlot)
 DayValue.Changed:Connect(function(newDay)
 	if not isPlotLoaded then return end
 
-	print("เข้าสู่วันที่ " .. newDay .. " อัปเดตการเติบโตของพืชทั่วโลก!")
+	print("เข้าสู่วันที่ " .. newDay .. " อัปเดตการเติบโตของพืช")
 
 	SyncPlotsData()
 
