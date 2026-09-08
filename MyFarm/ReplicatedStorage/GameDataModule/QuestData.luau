@@ -41,10 +41,23 @@ local QuestData = {
             Coins = 100,
             Exp = 50
         }
-    },
+	},
 
-    -- NOT TESTED
-     ["QC001"] = {
+
+	-- NOT TESTED
+	["Q002"] = {
+		Name = "เก็บเกี่ยวข้าว",
+		Description = "เก็บเกี่ยวข้าวที่ได้จากป้าสมพร",
+		location = "แปลงปลูกข้าวอินทรีย์",
+		TargetAmount = 1,
+		-- ReadyToSubmitMessage = "กลับไปหาป้าสมพร",
+		Rewards = {
+			Coins = 100,
+			Exp = 50
+		}
+	},
+
+    ["QC001"] = {
         Name = "ไปที่แปลงสาธิตของป้าสมพร",
         Description = "ไปดูที่แปลงปลูกข้าวอินทรีย์",
         location = "แปลงปลูกข้าวอินทรีย์",
@@ -54,18 +67,18 @@ local QuestData = {
             Coins = 100,
             Exp = 50
         }
-    },
-    
-    ["Q003"] = {
-        Name = "เก็บเกี่ยวข้าว",
-        Description = "เก็บเกี่ยวผลผลิตจากข้าว",
-        location = "แปลงปลูกข้าวอินทรีย์",
-        TargetAmount = 1,
-        ReadyToSubmitMessage = "รับรางวัลกับป้าสมพร",
-        Rewards = {
-            Coins = 100,
-            Exp = 50
-        }
+	},
+
+	["QC002"] = {
+		Name = "ไปที่แปลงสาธิตของป้าสมพร",
+		Description = "ไปดูที่แปลงปลูกข้าวอินทรีย์",
+		location = "แปลงปลูกข้าวอินทรีย์",
+		TargetAmount = 1,
+		ReadyToSubmitMessage = "กลับไปหาป้าสมพร",
+		Rewards = {
+			Coins = 100,
+			Exp = 50
+		}
 	},
 
     --["Q005"] = {

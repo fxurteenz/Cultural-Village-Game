@@ -1,11 +1,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Module = ReplicatedStorage:WaitForChild("Module")
 local DialogModule = require(Module:WaitForChild("DialogModule"))
 local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local GetQuestDataRF = ReplicatedStorage:WaitForChild("RemoteFunction"):WaitForChild("GetQuestData")
+
 local player = game.Players.LocalPlayer
 local npc = script.Parent
 local prompt = npc:WaitForChild("ProximityPrompt")
+local highlightFx = npc:WaitForChild("Highlight")
 
 local dialogObject = DialogModule.new("ตาอิน", npc, prompt)
 
@@ -13,267 +16,197 @@ local dialogObject = DialogModule.new("ตาอิน", npc, prompt)
 -- NPC Setting
 -- ==========================================
 local NPC_CONFIG = {
-	DefaultCompletedDialogId = 1, -- บทสนทนาเริ่มต้นหากทำเสร็จทุกเควสแล้ว
-
+	DefaultCompletedDialogId = 1,
 	Quests = {
-		--{
-		--	QuestID = "Q003",
-		--	EnableAutoTrigger = false,
-		--	AcceptDialogId = 1, -- ถ้ายังไม่ทำเควส
-		--	InProgressDialogId = 1, -- ถ้ากำลังทำเควส 
-		--	SubmitDialogId = 1, -- ถ้าเควสเสร็จพร้อมรับรางวัล 
-		--},
+		{
+			QuestID = "QC002",
+			RequireEventId = "E001",    -- เงื่อนไข: ต้องอยู่ใน Event E001 เท่านั้น
+			EnableAutoTrigger = true,   -- เปิดใช้งาน Auto-Trigger (เหมือนป้าสมพร)
+			SkipMenu = true,
+			AcceptDialogId = 100,
+			InProgressDialogId = 105,
+			SubmitDialogId = 110
+		},
 	}
 }
 
 local dialogTree = {
-	
-	[1] = {
-		text = "สวัสดีเจ้าหนูน้อย...",
-		next = 2,
+	[1] = { text = "สวัสดีเจ้าหนูน้อย...", next = 2 },
+	[2] = { text = "ข้ามีชื่อว่าอิน", next = 3 },
+	[3] = { text = "แล้วเอ็งชื่ออะไร?", next = 4 },
+	[4] = { text = "หนูชื่อว่า " .. player.DisplayName, next = 5 }, -- เพิ่มเว้นวรรค
+	[5] = { text = "แล้วเจ้าพึ่งย้ายมาอยู่ที่นี้ใช่ไหม?", next = 6 }, 
+	[6] = { text = "ใช่ครับ/ใช่ค่ะ", next = 7 },
+	[7] = { text = "ว่างๆ ก็แวะมาคุยกับตาได้นะ" },
+
+	-- บทสนทนาเควส
+	[100] = {
+		text = "ดูนกตัวนั้นสิเจ้าหนู", next=101
 	},
-	
-	[2] = {
-		text = "ข้ามีชื่อว่าอิน",
-		next = 3,
+    [101] = {
+		text = "มันน่าจะกำลังหาที่สำหรับทำรังน่ะ", next=101
 	},
-	
-	[3] = {
-		text = "แล้วเอ็งชื่ออะไร?",
-		next = 4,
+    [102] = {
+        text = "อย่าเข้าไปรบกวนมันนะ", next=103
 	},
-	
-	[4] ={
-		text = "หนูชื่อว่า" .. player.DisplayName,
-		next = 5,
-	},
-	
-	[5] = {
-		text = "แล้วเจ้าพึ่งย้ายมาอยู่ที่นี้ใช่ไหม? ",
-		next = 6,
-	}, 
-	
-	[6] = {
-		text = " ใช่ครับ/ใช่ต่ะ ",
-		next = 7,
-	},
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	[200] = {
-		text = "",
-		responses = {
-			{text="option1",next=1000},
-			{text="option2",next=300}
-		}
-	},
-	
-	[1300] = {
-		text = "quest dialog",
-		action = "acceptQuest",
-		questId = "T001",
-		next = 400
-	},
-	[1400] = {
-		text ="",
-		action="submitQuest",
-		questId="T001"
-	},
-	[2000] = {
-		text ="ไปทำเควส",
-	},
-	
-	[3000] = {
-		text ="เก่งมาก",
-		next=3100
-	},
-	[31] = {
-		text ="เก่งมาก2",
-		next=3200
-	},
-	[3300] = {
-		text ="ส่งเควส",
-		action="submitQuest",
-		questId="T001",
-		next=3400
-	},
-	
-	[4000] ={
-		text="มีอะไรให้ช่วยมั้ยหนู",
-		responses = {
-			{text="option1"},
-			{text="option2"}
-		}
+
+	[105] = { text = "ไล่นกกระเรียนไปถึงไหนแล้วล่ะหลาน?" },
+	[110] = {
+		text = "ขอบใจมากนะที่ช่วยตาไล่นกกระเรียน!",
+		action = "submitQuest",
+		questId = "QC001"
 	}
-	
-	--[2] = {
-	--	text = "รู้ไหมว่าหมู่บ้านนี้มีประวัติมายาวนานกี่ปีแล้ว?",
-	--	action = "acceptQuest", -- รับเควสเมื่อถึงบทสนทนานี้
-	--	questId = "Q006",
-	--	responses = {
-	--		{ text = "ไม่ทราบเลยค่ะ/ครับ" , next = 3}
-	--	}
-	--} ,
-	--[3] = {
-	--	text = "มากกว่า 100 ปีแล้วล่ะ",
-	--	next  = 4
-	--},
-	--[4] = {
-	--	text = "คนที่นี่อยู่กับธรรมชาติ ช่วยกันดูแลชุมชน",
-	--	responses = {
-	--		{ text = "คุณตาเล่าเรื่องสมัยก่อนให้ฟังได้ไหมคะ/ครับ" ,next = 5},
-	--		{ text = "สมัยก่อนต่างกับตอนนี้ยังไงหรอคะ/ครับ" ,next = 20}
-	--	}
-	--},
-	
-	--[5] = {
-	--	text = "ได้สิ..",
-	--	next = 6
-	--},
-	--[6] = {
-	--	text = "หมู่บ้านนี้ก่อตั้งขึ้นเมื่อปี พ.ศ.2462" ,
-	--	next = 7
-	--},
-	--[7]={
-	--	text = "โดยมีผู้คนอพยพมาตั้งรกราก ลงหลักปักฐานกันอย่างหลากหลาย",
-	--	next = 8
-	--},
-	--[8] = {
-	--	text = "ทั้งกลุ่มชาติพันธ์ไทย/ลาว และกลุ่มชาติพันธุ์เขมร",
-	--	next = 9 
-	--},
-	--[9] = {
-	--	text = "เนื่องจากแถวๆนี้เนี่ย อุดมสมบูรณ์มาก มีแหล่งน้ำขนาดใหญ่",
-	--	next = 10
-	--},
-	--[10] = {
-	--	text = "แล้วบริเวณนี้ยังมีต้นมะม่วง ที่ออกผลมาจะมีผลเป็นสีขาว",
-	--	next = 11
-	--},
-	--[11] = {
-	--	text = "ภาษาถิ่นเขมรจะเรียกว่า “สะวายซอ”",
-	--	next = 12
-	--},
-	--[12] = {
-	--	text = "“สะวาย“ หมายถึง มะม่วง ",
-	--	next = 13
-	--},
-	--[13] = {
-	--	text = " “ซอ“ หรือ “สอ“ หมายถึง ขาว",
-	--	next = 14
-	--},
-	--[14] = {
-	--	text = "คำว่า “สวายสอ” จึงหมายถึง มะม่วงขาว",
-	--	next = 15
-	--},
-	--[15] = {
-	--	text = "และเป็นที่มาของชื่อหมู่บ้านนี้มาจนปัจจุบันนี่แหละหลานเอ้ย",
-	--	responses ={
-	--		{
-	--			text = "ว้าว สุดยอดมากเลยค่ะ/ครับคุณปู่", 
-	--		 	action = "submitQuest", -- ส่งเควสเมื่อจบบทสนทนา
-	--			questId = "Q006"
-	--		}
-	--	}
-	--},
-	
-	--[20] = {
-	--	text = "ยังไม่มีบทพูด..."
-	--},
-	--[21] = {
-	--	text = "",
-	--	responses = {
-	--		{text = "ยังไม่มีอะไรให้พูดค่ะ/ครับ",next=30},
-	--		{text = "asd",next=22}
-	--	}
-	--},
-	--[22] = {
-	--	text = "asdf"
-	--},
-	
-	--[30] = {
-	--	text = "ยังไม่มีบทพูด..."
-	--},
-	
-	
 }
 
-local function UpdateQuestState()
-	local success, questData = pcall(function()
-		return GetQuestDataRF:InvokeServer()
-	end)
-	if not success then return end
-	questData = questData or { active = {}, completed = {} }
-
-	local isHandled = false
-	for _, questConfig in ipairs(NPC_CONFIG.Quests) do
-		local qId = questConfig.QuestID
-		if not questData.completed[qId] then
-			isHandled = true
-			if not questData.active[qId] then
-				dialogObject:ToggleQuestNoti(true, "main") -- ยังไม่ได้รับเควส
-			elseif not questData.active[qId].IsCompleted then
-				dialogObject:ToggleQuestNoti(false) -- กำลังทำเควส
-			else
-				dialogObject:ToggleQuestNoti(true, "submit") -- พร้อมส่งเควส
-			end
-			break 
-		end
-	end
-	if not isHandled then
-		dialogObject:ToggleQuestNoti(false)
-	end
-end
-
--- Add Dialogs เข้า Module
 for id, data in pairs(dialogTree) do
 	dialogObject:addDialog(id, data)
 end
 
-prompt.Triggered:Connect(function(player)
-	dialogObject:ToggleQuestNoti(false) 
+-- ==========================================
+-- Helper Function
+-- ==========================================
+local function checkEventCondition(questConfig)
+	if questConfig.RequireEventId then
+		local currentEvent = npc:GetAttribute("ActiveSpecialEvent")
+		if currentEvent ~= questConfig.RequireEventId then
+			return false
+		end
+	end
+	return true
+end
 
-	local success, questData = pcall(function()
-		return GetQuestDataRF:InvokeServer()
-	end)
-
-	if not success then return end
-	questData = questData or { active = {}, completed = {} }
-
-	local isHandled = false
+local function GetQuestTargetDialog(questData)
 	for _, questConfig in ipairs(NPC_CONFIG.Quests) do
-		local qId = questConfig.QuestID
+		if not checkEventCondition(questConfig) then continue end
 
-		if not questData.completed[qId] then
-			isHandled = true
+		local qId = questConfig.QuestID
+		local isCompleted = false
+
+		if questData.completed[qId] or (type(questData.completed) == "table" and table.find(questData.completed, qId)) then
+			isCompleted = true
+		end
+
+		if not isCompleted then
 			if not questData.active[qId] then
-				dialogObject:triggerDialog(player, questConfig.AcceptDialogId)
+				if questConfig.AcceptDialogId ~= 0 then return questConfig.AcceptDialogId, questConfig, "accept" end
 			elseif not questData.active[qId].IsCompleted then
-				dialogObject:triggerDialog(player, questConfig.InProgressDialogId)
+				return questConfig.InProgressDialogId, questConfig, "in_progress"
 			else
-				dialogObject:triggerDialog(player, questConfig.SubmitDialogId)
+				return questConfig.SubmitDialogId, questConfig, "submit"
 			end
-			break 
 		end
 	end
 
-	if not isHandled then
-		dialogObject:triggerDialog(player, NPC_CONFIG.DefaultCompletedDialogId)
+	return NPC_CONFIG.DefaultCompletedDialogId, nil, "none"
+end
+
+-- ==========================================
+-- Auto-Trigger Function (แก้ไขให้ปลอดภัยและเบาเครื่องขึ้น)
+-- ==========================================
+local AUTO_TRIGGER_DISTANCE = 12 
+local autoTriggerThread = nil
+local isDialogOnCooldown = false
+
+local function StopAutoTrigger()
+	if autoTriggerThread then
+		task.cancel(autoTriggerThread) -- ยกเลิก thread เดิม
+		autoTriggerThread = nil
+	end
+end
+
+local function StartAutoTrigger(dialogId)
+	StopAutoTrigger()
+
+	autoTriggerThread = task.spawn(function()
+		while true do
+			task.wait(0.5) -- เช็คทุกๆ 0.5 วินาที (เปลี่ยนจาก Heartbeat)
+
+			if isDialogOnCooldown then continue end
+
+			local character = player.Character
+			local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+			local npcRoot = npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+
+			if rootPart and npcRoot then
+				local distance = (rootPart.Position - npcRoot.Position).Magnitude
+
+				if distance <= AUTO_TRIGGER_DISTANCE and not dialogObject.active then
+					StopAutoTrigger() 
+					dialogObject:triggerDialog(player, dialogId)
+				end
+			end
+		end
+	end)
+end
+
+-- ==========================================
+-- Update Quest State
+-- ==========================================
+local function UpdateQuestState()
+	local success, questData = pcall(function() return GetQuestDataRF:InvokeServer() end)
+	if not success then return end
+	questData = questData or { active = {}, completed = {} }
+
+	local targetDialogId, questConfig, state = GetQuestTargetDialog(questData)
+
+	if questConfig then
+		if state == "accept" then
+			dialogObject:ToggleQuestNoti(true, "main")
+			highlightFx.Enabled = true
+		elseif state == "in_progress" then
+			dialogObject:ToggleQuestNoti(false)
+			highlightFx.Enabled = false
+		elseif state == "submit" then
+			dialogObject:ToggleQuestNoti(true, "submit")
+			highlightFx.Enabled = false
+		end
+
+		if questConfig.EnableAutoTrigger then
+			StartAutoTrigger(targetDialogId)
+		else
+			StopAutoTrigger()
+		end
+	else
+		dialogObject:ToggleQuestNoti(false)
+		StopAutoTrigger()
+	end
+end
+
+-- ==========================================
+-- จับสัญญาณเมื่อเริ่มอีเวนต์
+-- ==========================================
+npc:GetAttributeChangedSignal("ActiveSpecialEvent"):Connect(function()
+	print("[TaInn Npc] : ActiveSpecialEvent active auto trigger")
+	task.wait(0.5)
+	UpdateQuestState()
+end)
+
+-- ==========================================
+-- Player Interacts (กด E)
+-- ==========================================
+prompt.Triggered:Connect(function(playerWhoclicked)
+	StopAutoTrigger() 
+	dialogObject:ToggleQuestNoti(false) 
+
+	local success, questData = pcall(function() return GetQuestDataRF:InvokeServer() end)
+	if not success then return end
+	questData = questData or { active = {}, completed = {} }
+
+	local targetDialogId, questConfig, state = GetQuestTargetDialog(questData)
+
+	if questConfig then
+		dialogObject:triggerDialog(playerWhoclicked, targetDialogId)
+	else
+		dialogObject:triggerDialog(playerWhoclicked, NPC_CONFIG.DefaultCompletedDialogId)
 	end
 end)
 
--- Handle Response
+-- ==========================================
+-- Handle Responses
+-- ==========================================
 dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseData)
 	local nextId = responseData.next
-	
+
 	if nextId then
 		task.wait(0.3)
 		dialogObject:triggerDialog(player, nextId)
@@ -282,10 +215,18 @@ dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseDa
 		dialogObject:hideGui()
 		task.spawn(UpdateQuestState)
 	end
+
+	isDialogOnCooldown = true
+	task.spawn(function()
+		task.wait(0.5)
+		UpdateQuestState()
+		task.wait(2)
+		isDialogOnCooldown = false
+	end)
+
 	if responseData.action == "acceptQuest" then
 		QuestEvent:FireServer(responseData.questId, 0, "accept")
-	end
-	if responseData.action == "submitQuest" then
+	elseif responseData.action == "submitQuest" then
 		QuestEvent:FireServer(responseData.questId, 0, "submit")
 	end
 end)
@@ -293,8 +234,7 @@ end)
 dialogObject.nodeAction:Connect(function(dialogId, dialogData)
 	if dialogData.action == "acceptQuest" then
 		QuestEvent:FireServer(dialogData.questId, 0, "accept")
-	end
-	if dialogData.action == "submitQuest" then
+	elseif dialogData.action == "submitQuest" then
 		QuestEvent:FireServer(dialogData.questId, 0, "submit")
 	end
 end)

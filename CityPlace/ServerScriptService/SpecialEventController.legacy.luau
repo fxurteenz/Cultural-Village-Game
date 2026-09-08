@@ -14,15 +14,18 @@ local function checkEvent (eventId)
 		if not check_res or not isSuccess then 
 			return false, check_data 
 		end
-
+		check_data.eventId = eventId
+		
 		print("[SPECIAL_EVENT_CONTROLLER] : get ",eventId," event data ", HttpService:JSONEncode(check_data))
 		local event_quest = check_data.eventQuest or nil
 		if event_quest then
+			print("[SPECIAL_EVENT_CONTROLLER] : detect event quest data")
+
 			task.spawn(function()
 				local questId = check_data.eventQuest.questId
 				local questAction = check_data.eventQuest.questAction
 
-				local maxRetries = 30 -- พยายามสูงสุด 30 ครั้ง (ประมาณ 1 นาที)
+				local maxRetries = 2 -- พยายามสูงสุด 30 ครั้ง (ประมาณ 1 นาที)
 				local retryCount = 0
 				local isSuccess = false
 

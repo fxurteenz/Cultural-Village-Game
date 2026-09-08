@@ -57,14 +57,28 @@ QuestEvent.OnServerEvent:Connect(function(player, questID, amount, action, targe
 end)
 
 BindableQuestFunction.OnInvoke = function(player, questID, amount, action, targetName)
-    if player == "all_player" then
-        for _, p in ipairs(Players:GetPlayers()) do
-            ProcessQuestAction(p, questID, amount, action, targetName)
-        end
-        return true, "ดำเนินการกับผู้เล่นทุกคนสำเร็จ"
-    else
-        return ProcessQuestAction(player, questID, amount, action, targetName)
-    end
+	if player == "all_player" then
+		local playersList = Players:GetPlayers()
+
+		if #playersList == 0 then
+			return false, "ยังไม่มีผู้เล่นในเซิร์ฟเวอร์"
+		end
+
+		local isAllSuccess = true
+		local lastMessage = "ดำเนินการกับผู้เล่นทุกคนสำเร็จ"
+
+		for _, p in ipairs(playersList) do
+			local success, msg = ProcessQuestAction(p, questID, amount, action, targetName)
+			if not success then
+				isAllSuccess = false
+				lastMessage = msg -- เก็บข้อความ Error ของคนที่แจกไม่สำเร็จไว้
+			end
+		end
+
+		return isAllSuccess, lastMessage
+	else
+		return ProcessQuestAction(player, questID, amount, action, targetName)
+	end
 end
 
 GameManager.PlayerLoaded.Event:Connect(function(player)
