@@ -3,7 +3,7 @@ local QuestData = {
     ["QT001"] = {
         Name = "กลับไปนอนพักที่บ้าน",
         Description = "นอนพักที่เตียงนอน",
-        location = "บ้านของผู้เล่น",
+        location = Vector3.new(337.188, 16.519, -151.057),
         TargetAmount = 1,
         Rewards = {
             Coins = 0,
@@ -13,7 +13,7 @@ local QuestData = {
     ["QT002"] = {
         Name = "คุยกับผู้ใหญ่บ้าน",
         Description = "คุยกับผู้ใหญ่บ้านที่ศาลารอรถประจำทาง",
-        location = "หมู่บ้าน",
+        location = Vector3.new(405.709, 10.819, -358.904),
         TargetAmount = 1,
         Rewards = {
             Coins = 0,
@@ -58,7 +58,7 @@ local QuestData = {
 	},
 
     ["QC001"] = {
-        Name = "ไปที่แปลงสาธิตของป้าสมพร",
+        Name = "ไปดูที่แปลงสาธิต",
         Description = "ไปดูที่แปลงปลูกข้าวอินทรีย์",
         location = "แปลงปลูกข้าวอินทรีย์",
         TargetAmount = 1,
