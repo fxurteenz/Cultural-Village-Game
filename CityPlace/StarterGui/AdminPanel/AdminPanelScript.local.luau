@@ -9,12 +9,26 @@ local adminPanel = script.Parent
 local mainFrame = adminPanel:WaitForChild("Frame")
 local questPage = mainFrame:WaitForChild("QuestEventTest")
 
+-- ตั้งค่า Admin
 local player_id = tostring(Player.UserId)
-if player_id == "7597767503" then
-	mainFrame.Visible = true
-else
-	mainFrame.Visible = false
-end
+local ADMIN_USER_ID = "7597767503"
+local ADMIN_COMMAND = "/admin" -- สามารถเปลี่ยนคำสั่งได้ที่นี่
+
+-- ปิดหน้าต่างไว้เป็นค่าเริ่มต้นตอนเข้าเกม
+mainFrame.Visible = false
+
+-- [[ เพิ่มระบบตรวจรับการพิมพ์แชท ]]
+Player.Chatted:Connect(function(message)
+	-- ตรวจสอบว่าเป็น Admin หรือไม่
+	if player_id == ADMIN_USER_ID then
+		-- ตรวจสอบข้อความ (แปลงเป็นพิมพ์เล็กเพื่อป้องกันปัญหาตัวพิมพ์เล็ก-ใหญ่)
+		if message:lower() == ADMIN_COMMAND then
+			mainFrame.Visible = not mainFrame.Visible -- สลับสถานะเปิด/ปิด
+			print(mainFrame.Visible and "[DevPanel] เปิดใช้งาน" or "[DevPanel] ปิดใช้งาน")
+		end
+	end
+end)
+-- ===================================
 
 --[[
 	QUEST EVENT TESTER
@@ -31,12 +45,12 @@ sendQuestEventButton.MouseButton1Click:Connect(function()
 	local amount = tonumber(questAmountBox.Text) or 0
 	local targetName = targetNameBox.Text 
 
-    if questId == "" or eventType == "" then
+	if questId == "" or eventType == "" then
 		warn("[DevPanel] กรุณากรอก QuestId และ Event ให้ครบถ้วน")
 		return
 	elseif eventType == "update" and (amount == 0 or targetName == "")then
 		warn("[DevPanel] กรุณากรอก QuestAmount และ TargetName เพื่อ add progress")
-        return
+		return
 	end
 
 	print(string.format("[DevPanel] กำลังส่ง Event: %s | Quest: %s | Amount: %d", eventType, questId, amount))
@@ -88,7 +102,7 @@ specialEventTestBtn.MouseButton1Click:Connect(function()
 	if eventId == "" then
 		warn("[DevPanel] กรุณากรอกข้อมูลให้ครบถ้วน")
 	end
-	
+
 	local invoke_res, check_res, invoke_data = pcall(function()
 		return testSpecialEvent:InvokeServer(eventId, eventPosition)
 	end)
