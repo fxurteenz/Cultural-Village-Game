@@ -38,6 +38,14 @@ local NPC_CONFIG = {
             InProgressDialogId = 10,
             SubmitDialogId = 30
         },
+        {
+            QuestID = "Q002",
+            EnableAutoTrigger = false,
+            SkipMenu = false,
+            AcceptDialogId = 0,
+            InProgressDialogId = 50,
+            SubmitDialogId = 30
+        },
     }
 }
 
@@ -104,20 +112,16 @@ local dialogTree = {
     [30] = { 
         text = "เป็นไงบ้าง เรียบร้อยแล้วใช่ไหม",
         responses = {
-            { text = "ใช่ครับ/ค่ะ", action = "submitQuest", questId = "Q001", next = 31 }
+            { text = "ใช่ครับ/ค่ะ", action = "submitQuest", questId = "Q001", next = 32 }
         }
     },
-    [31] = { 
-        text = "เก่งมาก!",
-         next = 32
-        },
     [32] = { 
         text = "หลังจากนี้ก็แค่หมั่นดูแลต้นข้าว ไม่ให้ป่วย หรือมีแมลงศัตรูพืช",
         next = 33,
         delay = 1.5
     },
     [33] = { 
-        text = "และเมื่อข้าวเป็นสีเหลืองทอง ก็จะถึงเวลาเก็บเกี่ยว",
+        text = "พอข้าวเป็นสีเหลืองทอง ก็จะถึงเวลาเก็บเกี่ยว",
         next = 34
     },
     [34] = { 
@@ -127,13 +131,14 @@ local dialogTree = {
     [35] = {
         text = "เอาไว้ใช้เก็บเกี่ยวผลผลิตของหนูนะ",
         responses = { 
-            { text = "ขอบคุณครับ/ค่ะ", action = "giveItem", itemName = "Sickle", amount = 1, next = 36 }
-        }
+            { text = "ขอบคุณครับ/ค่ะ", action = "giveItem", itemName = "Sickle", amount = 1 }
+        },
+        action = "acceptQuest", questId="Q002"
     },
-    [36] = { 
-		text ="แล้วก็ถ้าอยากได้ต้นกล้าหรือเมล็ดพันธุ์ล่ะก็ มาหาป้าได้เลยนะ",
-        delay=1.5
-     },
+    -- [36] = { 
+	-- 	text ="แล้วก็ถ้าอยากได้ต้นกล้าหรือเมล็ดพันธุ์ล่ะก็ มาหาป้าได้เลยนะ",
+    --     delay=1.5
+    --  },
 
 
     [40] = {

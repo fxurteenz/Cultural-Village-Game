@@ -51,16 +51,14 @@ local isTimePaused = false
 
 local TimeTask = nil
 
-local REAL_SECONDS_PER_GAME_MINUTE = 10
+local REAL_SECONDS_PER_GAME_MINUTE = 5
 local PASS_OUT_HOUR = 2
 local MAX_DAYS_PER_SEASON = 30
 local MAX_SEASONS = 3
 
 local HOME_SPAWN_LOCATION = CFrame.new(0, 5, 0) 
 
--- ==========================================
--- [ระบบใหม่] ฟังก์ชันตรวจสอบเหตุการณ์พิเศษประจำวัน
--- ==========================================
+
 local function checkSpecialEvent(seasonNum, dayNum)
     local seasonKey = SeasonKeys[seasonNum]
     if not seasonKey then return end

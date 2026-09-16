@@ -5,7 +5,7 @@ local ItemDatabase = {
 		Description = "ต้นกล้่าของต้นข้าว สำหรับนำไปดำนา"
 	},
 	["RiceSprout(quest)"] = {
-		ItemName = "ต้นกล้าข้าว",
+		ItemName = "ต้นกล้าข้าว(เควส)",
 		Icon = "rbxassetid://108601657790274",
 		Description = "ต้นกล้่าของต้นข้าว สำหรับนำไปดำนา"
 	},

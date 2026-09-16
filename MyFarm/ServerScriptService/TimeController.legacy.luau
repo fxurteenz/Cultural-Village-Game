@@ -15,6 +15,9 @@ local YearValue = GameTimeData:WaitForChild("Year")
 
 local SleepEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("SleepEvent")
 local SpecialEventTrigger = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("SpecialEventFunction")
+local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
+local BindableQuestEvent = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("QuestFunction")
+
 -- ==========================================
 -- [ระบบใหม่] ข้อมูล Event Calendar
 -- ==========================================
@@ -89,6 +92,7 @@ local function checkSpecialEvent(seasonNum, dayNum)
     end
 end
 
+
 -- ==========================================
 -- ฟังก์ชันจัดการแสงและเวลา
 -- ==========================================
@@ -143,6 +147,24 @@ local function passOutPlayers()
             print(player.Name .. " passed out from exhaustion!")
         end
     end
+end
+
+local function sleepQuestsControl(player)
+    local activeQuest = DataManager.PlayersData[player.UserId].quests.active
+    local completedQuest = DataManager.PlayersData[player.UserId].quests.completed
+
+    if activeQuest then
+        if activeQuest["QT001"] then
+            local result = BindableQuestEvent:Invoke(player, "QT001", 1, "submit")
+            if result then
+                BindableQuestEvent:Invoke(player, "QT002", 1, "accept")
+            end
+        end
+    end
+
+    -- if completedQuest then
+
+    -- end
 end
 
 local function startTimeTask()
@@ -240,7 +262,8 @@ SleepEvent.OnServerEvent:Connect(function(player)
 
     task.wait(3)
     startNewDay()
-
+    sleepQuestsControl(player)
+    
     ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
     Lighting.ClockTime = 7
     local ambient, colorshift = getLightingColors(7)

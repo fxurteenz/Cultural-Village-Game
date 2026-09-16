@@ -142,7 +142,6 @@ end
 function QuestManager.GetAllQuestData(player)
 	local pData = DataManager.PlayersData[player.UserId]
 
-	-- 🌟 คืนค่าเป็นตัวพิมพ์เล็ก (active, completed) เพื่อให้ DialogScript ใช้งานได้ทันที
 	if pData and pData.quests then
 		return {
 			active = pData.quests.active or {},
