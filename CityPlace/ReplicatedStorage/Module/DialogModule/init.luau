@@ -63,6 +63,10 @@ function DialogModule.new(npcName, npc, prompt, animation)
 	self.nodeAction = nodeActionSignal.Event
 	self.fireNodeAction = nodeActionSignal
 	
+	local dialogClosedSignal = Instance.new("BindableEvent")
+	self.dialogClosed = dialogClosedSignal.Event
+	self.fireDialogClosed = dialogClosedSignal
+	
 	-- Tweens
 	self.animNameText = tweenService:Create(self.npcGui.name, TweenInfo.new(.3), {TextTransparency = 1})
 	self.animNameStroke = tweenService:Create(self.npcGui.name.UIStroke, TweenInfo.new(.3), {Transparency = 1})
@@ -317,6 +321,7 @@ function DialogModule:hideGui()
 	DialogModule.isPlayerInDialog = false
 	ContextActionService:UnbindAction(DIALOG_ACTION)
 
+	self.fireDialogClosed:Fire()
 	self:togglePrompts(true)
 
 	local camera = workspace.CurrentCamera

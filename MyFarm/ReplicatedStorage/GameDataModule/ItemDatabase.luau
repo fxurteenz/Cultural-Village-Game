@@ -24,7 +24,14 @@ local ItemDatabase = {
         ItemName = "ตะเกียง",
         Icon = "rbxassetid://123456789",
         Description = "ให้แสงสว่างในตอนกลางคืน"
-    }
+	},
+	
+	["SlingShot"] = {
+		ItemName = "หนังสติ๊ก",
+		Icon = "rbxassetid://123456789",
+		Description = "ใช้ไล่สัตว์"
+	}
+	
 }
 
 return ItemDatabase

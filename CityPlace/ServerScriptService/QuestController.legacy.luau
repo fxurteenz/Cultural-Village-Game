@@ -53,7 +53,8 @@ local function ProcessQuestAction(targetPlayer, questID, amount, action, targetN
 end
 
 QuestEvent.OnServerEvent:Connect(function(player, questID, amount, action, targetName)
-    ProcessQuestAction(player, questID, amount, action, targetName)
+    print("server get quest action : ",questID, action)
+    task.spawn(ProcessQuestAction(player, questID, amount, action, targetName))
 end)
 
 BindableQuestFunction.OnInvoke = function(player, questID, amount, action, targetName)

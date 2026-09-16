@@ -138,7 +138,7 @@ local function passOutPlayers()
         local character = player.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
             character.HumanoidRootPart.CFrame = HOME_SPAWN_LOCATION
-            print(player.Name .. " passed out from exhaustion!")
+            warn(player.Name .. " passed out from exhaustion!")
         end
     end
 end

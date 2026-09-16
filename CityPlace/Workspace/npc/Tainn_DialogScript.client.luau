@@ -32,7 +32,7 @@ local NPC_CONFIG = {
 
 local dialogTree = {
 	[1] = { text = "สวัสดีเจ้าหนูน้อย...", next = 2 },
-	[2] = { text = "ข้ามีชื่อว่าอิน", next = 3 },
+	[2] = { text = "ข้าชื่อว่าอิน", next = 3 },
 	[3] = { text = "แล้วเอ็งชื่ออะไร?", next = 4 },
 	[4] = { text = "หนูชื่อว่า " .. player.DisplayName, next = 5 }, -- เพิ่มเว้นวรรค
 	[5] = { text = "แล้วเจ้าพึ่งย้ายมาอยู่ที่นี้ใช่ไหม?", next = 6 }, 
@@ -41,16 +41,26 @@ local dialogTree = {
 
 	-- บทสนทนาเควส
 	[100] = {
-		text = "ดูนกตัวนั้นสิเจ้าหนู", next=101
+		text = "ดูนกกระเรียนตัวนั้นสิเจ้าหนู", next=101
 	},
     [101] = {
-		text = "มันน่าจะกำลังหาที่สำหรับทำรังน่ะ", next=101
+		text = "พวกอีกากำลังพยายามจะกินไข่ของมัน", next=102
 	},
     [102] = {
-        text = "อย่าเข้าไปรบกวนมันนะ", next=103
+		text = "เอ้าเอา หนังสติ๊กไป ", 
+        action="giveItem", 
+		itemName ="SlingShot",
+		amount = 1,
+        next=103
+	},
+	[103] = {
+		text = "ไปไล่มันเร็วเข้าเจ้าหนู", 
+		action="acceptQuest", 
+		questId ="QC002",
 	},
 
 	[105] = { text = "ไล่นกกระเรียนไปถึงไหนแล้วล่ะหลาน?" },
+	
 	[110] = {
 		text = "ขอบใจมากนะที่ช่วยตาไล่นกกระเรียน!",
 		action = "submitQuest",
@@ -228,6 +238,10 @@ dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseDa
 		QuestEvent:FireServer(responseData.questId, 0, "accept")
 	elseif responseData.action == "submitQuest" then
 		QuestEvent:FireServer(responseData.questId, 0, "submit")
+	-- elseif responseData.action == "giveItem" then
+	-- 	GiveItemEvent:FireServer(responseData.itemName, responseData.amount)
+	-- else
+		
 	end
 end)
 

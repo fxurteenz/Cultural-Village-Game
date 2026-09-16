@@ -46,6 +46,14 @@ local NPC_CONFIG = {
             InProgressDialogId = 50,
             SubmitDialogId = 30
         },
+        {
+            QuestID = "Q003_1",
+            EnableAutoTrigger = false,
+            SkipMenu = false,
+            AcceptDialogId = 0,
+            InProgressDialogId = 50,
+            SubmitDialogId = 0
+        }
     }
 }
 
@@ -112,7 +120,7 @@ local dialogTree = {
     [30] = { 
         text = "เป็นไงบ้าง เรียบร้อยแล้วใช่ไหม",
         responses = {
-            { text = "ใช่ครับ/ค่ะ", action = "submitQuest", questId = "Q001", next = 32 }
+            { text = "ใช่ครับ/ค่ะ", next = 32 }
         }
     },
     [32] = { 
@@ -121,7 +129,7 @@ local dialogTree = {
         delay = 1.5
     },
     [33] = { 
-        text = "พอข้าวเป็นสีเหลืองทอง ก็จะถึงเวลาเก็บเกี่ยว",
+        text = "เมื่อถึงเวลาเก็บเกี่ยว ข้าวจะเป็นสีเหลืองทอง ",
         next = 34
     },
     [34] = { 
@@ -131,9 +139,14 @@ local dialogTree = {
     [35] = {
         text = "เอาไว้ใช้เก็บเกี่ยวผลผลิตของหนูนะ",
         responses = { 
-            { text = "ขอบคุณครับ/ค่ะ", action = "giveItem", itemName = "Sickle", amount = 1 }
-        },
-        action = "acceptQuest", questId="Q002"
+            { text = "ขอบคุณครับ/ค่ะ", action = "giveItem", itemName = "Sickle", amount = 1,
+                actions = {
+                    { type = "submitQuest", questId = "Q001"},
+                    { type = "acceptQuest",questId = "Q002"},
+                    { type = "acceptQuest",questId = "Q003_1"}
+                },
+            }
+        }
     },
     -- [36] = { 
 	-- 	text ="แล้วก็ถ้าอยากได้ต้นกล้าหรือเมล็ดพันธุ์ล่ะก็ มาหาป้าได้เลยนะ",
@@ -166,26 +179,36 @@ end
 local function GetQuestTargetDialog(questData)
     for _, questConfig in ipairs(NPC_CONFIG.Quests) do
         local qId = questConfig.QuestID
-        local isCompleted = false
-        if questData.completed[qId] then
-            isCompleted = true
-        elseif table.find(questData.completed, qId) then
-            isCompleted = true
+
+        -- ✅ เช็ค completed แบบเดียว (server ควรส่งมาแบบใดแบบหนึ่ง ให้ normalize ที่นี่)
+        local isCompleted = questData.completed[qId] == true
+            or table.find(questData.completed, qId) ~= nil
+
+        if isCompleted then
+            continue  -- เควสนี้จบแล้ว ข้ามไปเลย
         end
 
-        if not isCompleted then
-            if not questData.active[qId] then
-                if questConfig.AcceptDialogId ~= 0 then return questConfig.AcceptDialogId, questConfig, "accept" end
-            elseif not questData.active[qId].IsCompleted then
-                return questConfig.InProgressDialogId, questConfig, "in_progress"
-            else
-                return questConfig.SubmitDialogId, questConfig, "submit"
+        local activeData = questData.active[qId]
+
+        if not activeData then
+            -- ยังไม่ได้รับเควสนี้เลย
+            if questConfig.AcceptDialogId == 0 then
+                continue  -- รับจากที่อื่น ข้ามไป
             end
-        end
+            return questConfig.AcceptDialogId, questConfig, "accept"
 
+        elseif not activeData.IsCompleted then
+            -- กำลัง inprogress อยู่
+            return questConfig.InProgressDialogId, questConfig, "in_progress"
+
+        else
+            -- ทำครบแล้ว รอ submit
+            return questConfig.SubmitDialogId, questConfig, "submit"
+        end
     end
 
-    return NPC_CONFIG.DefaultCompletedDialogId, nil, "none"
+    -- ไม่มีเควสที่ต้องจัดการ → fallback
+    return NPC_CONFIG.FallbackDialogId, nil, "none"
 end
 
 -- ==========================================
@@ -221,7 +244,7 @@ local function StartAutoTrigger(dialogId)
             end
         end
 
-        task.wait(1)
+        --task.wait(1)
     end)
 end
 
@@ -262,7 +285,7 @@ end
 -- ==========================================
 prompt.Triggered:Connect(function(player)
     StopAutoTrigger() 
-    dialogObject:ToggleQuestNoti(false) 
+    -- dialogObject:ToggleQuestNoti(false)
 
     local success, questData = pcall(function() return GetQuestDataRF:InvokeServer() end)
     if not success then return end
@@ -280,17 +303,14 @@ prompt.Triggered:Connect(function(player)
 
     if questConfig then
         if questConfig.SkipMenu then
-            -- ถ้าตั้งค่าให้ข้ามเมนู (เหมาะกับเควสสำคัญ) ให้คุยเควสเลย
             dialogObject:triggerDialog(player, targetDialogId)
-            if state == "submit" then
-                QuestEvent:FireServer(questConfig.QuestID, 0, "submit")
-            end
+            -- if state == "submit" then
+            --     QuestEvent:FireServer(questConfig.QuestID, 0, "submit")
+            -- end
         else
-            -- ถ้าไม่ให้ข้ามเมนู ให้โยนไปหน้าเลือก คุย/ซื้อของ ก่อน
             dialogObject:triggerDialog(player, NPC_CONFIG.DefaultCompletedDialogId)
         end
     else
-        -- ถ้าไม่มีเควส ก็ไปหน้าเลือก คุย/ซื้อของ
         dialogObject:triggerDialog(player, NPC_CONFIG.DefaultCompletedDialogId)
     end
 end)
@@ -312,9 +332,9 @@ dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseDa
         local success, questData = pcall(function() return GetQuestDataRF:InvokeServer() end)
         if success then
             questData = questData or { active = {}, completed = {} }
-            print("--- Data จาก Server ---")
-            print("Completed:", HttpService:JSONEncode(questData.completed))
-            print("Active:",HttpService:JSONEncode(questData.active))
+            --print("--- Data จาก Server ---")
+            --print("Completed:", HttpService:JSONEncode(questData.completed))
+            --print("Active:",HttpService:JSONEncode(questData.active))
 
             local targetDialogId, questConfig, state = GetQuestTargetDialog(questData)
 
@@ -328,6 +348,34 @@ dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseDa
             end
         end
         return
+    end
+
+    if responseData.actions then
+        for _, action in ipairs(responseData.actions) do
+            if action.type == "acceptQuest" then
+                QuestEvent:FireServer(action.questId, 0, "accept")
+            elseif action.type == "submitQuest" then
+                QuestEvent:FireServer(action.questId, 0, "submit")
+            elseif action.type == "giveItem" then
+                GiveItemEvent:FireServer(action.itemName, action.amount)
+            end
+            task.wait(1)
+        end
+    end
+    if responseData.action then
+        if responseData.action == "acceptQuest" then
+            QuestEvent:FireServer(responseData.questId, 0, "accept")
+        elseif responseData.action == "submitQuest" then
+            QuestEvent:FireServer(responseData.questId, 0, "submit")
+        elseif responseData.action == "giveItem" then
+            GiveItemEvent:FireServer(responseData.itemName, responseData.amount)
+        elseif responseData.action == "openSeedShop" then
+            SeedShopBindable:Fire()
+            dialogObject:hideGui()
+            task.spawn(UpdateQuestState) -- ให้ไอคอนกลับมาแสดงถ้ามีเควส
+        elseif responseData.action == "" or responseData.action == nil or not responseData.action then
+            warn("[NPC_DIALOG_SCRIPT] invalid action")
+        end
     end
 
     local nextId = responseData.next
@@ -349,30 +397,29 @@ dialogObject.responded:Connect(function(choiceIndex, currentDialogId, responseDa
         isDialogOnCooldown = false
     end)
 
-    if responseData.action == "acceptQuest" then
-        QuestEvent:FireServer(responseData.questId, 0, "accept")
-    elseif responseData.action == "submitQuest" then
-        QuestEvent:FireServer(responseData.questId, 0, "submit")
-    elseif responseData.action == "giveItem" then
-        GiveItemEvent:FireServer(responseData.itemName, responseData.amount)
-    elseif responseData.action == "openSeedShop" then
-        SeedShopBindable:Fire()
-        dialogObject:hideGui()
-        task.spawn(UpdateQuestState) -- ให้ไอคอนกลับมาแสดงถ้ามีเควส
-    elseif responseData.action == "" or responseData.action == nil or not responseData.action then
-        warn("[NPC_DIALOG_SCRIPT] invalid action")
-    end
 end)
 
 dialogObject.nodeAction:Connect(function(dialogId, dialogData)
-    if dialogData.action == "acceptQuest" then
-        QuestEvent:FireServer(dialogData.questId, 0, "accept")
-     elseif dialogData.action == "submitQuest" then
-        QuestEvent:FireServer(dialogData.questId, 0, "submit")
-    elseif dialogData.action == "giveItem" then
-        GiveItemEvent:FireServer(dialogData.itemName, dialogData.amount)
-    elseif dialogData.action == "" or dialogData.action == nil or not dialogData.action then
-        warn("[NPC_DIALOG_SCRIPT] invalid action")
+    if dialogData.actions then
+        for _, action in ipairs(dialogData.actions) do
+            if action.type == "acceptQuest" then
+                QuestEvent:FireServer(action.questId, 0, "accept")
+            elseif action.type == "submitQuest" then
+                QuestEvent:FireServer(action.questId, 0, "submit")
+            elseif action.type == "giveItem" then
+                GiveItemEvent:FireServer(action.itemName, action.amount)
+            end
+            task.wait(1)
+        end
+    end
+    if dialogData.action then
+        if dialogData.action == "acceptQuest" then
+            QuestEvent:FireServer(dialogData.questId, 0, "accept")
+        elseif dialogData.action == "submitQuest" then
+            QuestEvent:FireServer(dialogData.questId, 0, "submit")
+        elseif dialogData.action == "giveItem" then
+            GiveItemEvent:FireServer(dialogData.itemName, dialogData.amount)
+        end
     end
 end)
 
