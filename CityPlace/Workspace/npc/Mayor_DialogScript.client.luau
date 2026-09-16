@@ -1,5 +1,6 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LoadingEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("LoadingEvent")
 local TeleportEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("TeleportEvent")
 local RunService = game:GetService("RunService")
 
@@ -158,8 +159,8 @@ end
 -- ==========================================
 -- Auto-Trigger Function
 -- ==========================================
-local AUTO_TRIGGER_DISTANCE = 16 
-local autoTriggerConnection = nil -- เปลี่ยนชื่อตัวแปรให้ตรงกับการใช้งานจริง (Thread)
+local AUTO_TRIGGER_DISTANCE = 20
+local autoTriggerConnection = nil
 local isDialogOnCooldown = false
 
 local function StopAutoTrigger()
@@ -198,21 +199,30 @@ end
 -- ==========================================
 -- Quest State icon & Quest autotrigger initial
 -- ==========================================
-local function UpdateQuestState()
+local function UpdateQuestState(isRetry)
 	local success, questData = pcall(function() return GetQuestDataRF:InvokeServer() end)
-	if not success then return end
+	if not success then 
+        if not isRetry then
+            warn("[NPC] ขอข้อมูลเควสไม่สำเร็จ กำลังลองใหม่...")
+            task.wait(0.25)
+            return UpdateQuestState(true)
+        end
+        return 
+    end
+
     questData = questData or { active = {}, completed = {} }
 
     local targetDialogId, questConfig, state = GetQuestTargetDialog(questData)
 
     if questConfig then
-        -- จัดการไอคอนบนหัว
         if state == "accept" then
             dialogObject:ToggleQuestNoti(true, "main")
         elseif state == "in_progress" then
             dialogObject:ToggleQuestNoti(false)
+            highlightFx.Enabled = true
         elseif state == "submit" then
             dialogObject:ToggleQuestNoti(true, "submit")
+            highlightFx.Enabled = true
         end
 
         if questConfig.EnableAutoTrigger and state == "accept" then
@@ -237,8 +247,6 @@ prompt.Triggered:Connect(function(player)
 	local success, questData = pcall(function() return GetQuestDataRF:InvokeServer() end)
 	if not success then return end
 	questData = questData or { active = {}, completed = {} }
-
-	local isHandled = false
 
 	local targetDialogId, questConfig, state = GetQuestTargetDialog(questData)
 
@@ -313,7 +321,17 @@ dialogObject.nodeAction:Connect(function(dialogId, dialogData)
 end)
 
 dialogObject.dialogClosed:Connect(function()
-	task.spawn(UpdateQuestState)
+    if not isDialogOnCooldown then 
+        task.spawn(UpdateQuestState)
+    end
 end)
 
-task.spawn(UpdateQuestState)
+task.spawn(function()
+    if not player:GetAttribute("IsLoadingScreenClosed") then
+        player:GetAttributeChangedSignal("IsLoadingScreenClosed"):Wait()
+    end
+
+    local character = player.Character or player.CharacterAdded:Wait()
+    character:WaitForChild("HumanoidRootPart")
+    UpdateQuestState()
+end)

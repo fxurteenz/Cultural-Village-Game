@@ -149,7 +149,7 @@ function DialogModule:triggerDialog(player, dialogId)
 			local npcRoot = self.npc.PrimaryPart or self.npc:FindFirstChild("HumanoidRootPart")
 			if npcRoot and player.Character and player.Character.PrimaryPart then
 				local distance = (player.Character.PrimaryPart.Position - npcRoot.Position).Magnitude
-				if distance > 15 then
+				if distance > 26 then
 					self:hideGui()
 				end
 			end
