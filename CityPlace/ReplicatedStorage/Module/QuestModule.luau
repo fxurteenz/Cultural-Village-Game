@@ -95,12 +95,12 @@ function QuestManager.SubmitQuest(player, questId)
 			local rewards = questInfo.Rewards
 
 			if rewards then
-				print(player.Name .. " ส่งเควส " .. questInfo.Name .. " สำเร็จ!")
+				--print(player.Name .. " ส่งเควส " .. questInfo.Name .. " สำเร็จ!")
 
 				-- 🌟 ระบบแจกเงินอัตโนมัติ (เข้า DataManager)
 				if rewards.Coins then
 					pData.coins = (pData.coins or 0) + rewards.Coins
-					print("ได้รับเงิน: " .. rewards.Coins)
+					--print("ได้รับเงิน: " .. rewards.Coins)
 				end
 
 				-- 🌟 ระบบแจกไอเทมอัตโนมัติ (เข้า DataManager)

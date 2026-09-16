@@ -15,55 +15,46 @@ local YearValue = GameTimeData:WaitForChild("Year")
 
 local SleepEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("SleepEvent")
 local SpecialEventTrigger = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("SpecialEventFunction")
-local QuestEvent = ReplicatedStorage:WaitForChild("RemoteEvent"):WaitForChild("QuestEvent")
 local BindableQuestEvent = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("QuestFunction")
 
+local FARM_PLACE_ID = 106832184588439 
+local TeleportFunction = ServerStorage:WaitForChild("BindableFunction"):WaitForChild("TeleportFunction")
+
 -- ==========================================
--- [ระบบใหม่] ข้อมูล Event Calendar
+-- ข้อมูล Event Calendar
 -- ==========================================
 local SeasonKeys = {
-    [1] = "RN", -- สมมติว่าฤดู 1 คือ Summer
-    [2] = "WT", -- ฤดู 2 คือ Rainy
-    [3] = "SM"  -- ฤดู 3 คือ Winter
+    [1] = "RN",
+    [2] = "WT",
+    [3] = "SM"
 }
 
 local EventCalendar = {
-    RN = {
-        -- [5] = { -- วันที่ 5 ของฤดูฝน
-        --     eventName = "ฝูงนกกระเรียนลงนา",
-        --     eventId = "CRANE_VISIT",
-        --     questId = "Q_CRANE_001"
-        -- }
-    },
+    RN = {},
     WT = {},
     SM = {},
 }
 
 -- ==========================================
--- รอข้อมูล WorldData จาก DataManager
+-- ข้อมูลเวลา
 -- ==========================================
-
 local saveTimeData = nil
 local currentMinute = 0
 local currentHour = 7
-local currentDay =  1
+local currentDay = 1
 local currentSeason = 1
 local currentYear = 1
 
 local isTimePaused = false
-
 local TimeTask = nil
 
-local REAL_SECONDS_PER_GAME_MINUTE = 10
+local REAL_SECONDS_PER_GAME_MINUTE = 5
 local PASS_OUT_HOUR = 2
 local MAX_DAYS_PER_SEASON = 30
 local MAX_SEASONS = 3
 
-local HOME_SPAWN_LOCATION = CFrame.new(0, 5, 0) 
+local HOME_SPAWN_LOCATION = CFrame.new(333, 16.308, -150.398)
 
--- ==========================================
--- [ระบบใหม่] ฟังก์ชันตรวจสอบเหตุการณ์พิเศษประจำวัน
--- ==========================================
 local function checkSpecialEvent(seasonNum, dayNum)
     local seasonKey = SeasonKeys[seasonNum]
     if not seasonKey then return end
@@ -72,13 +63,10 @@ local function checkSpecialEvent(seasonNum, dayNum)
     if todayEvent then
         print(string.format("[EventSystem] วันนี้มีเหตุการณ์พิเศษ: %s (EventID: %s)", todayEvent.eventName, todayEvent.eventId))
         
-        -- ถ้าเป็นอีเวนท์นกกระเรียน
         if todayEvent.eventId == "CRANE_VISIT" then
-            -- กำหนดพิกัดที่แปลงนาและชื่อแอนิเมชั่นที่ต้องการส่งไปให้ระบบนกกระเรียน
             local riceFieldPosition = Vector3.new(364.141, 63, 251.512) 
             local animationToPlay = "idle"
 
-            -- ใช้ pcall เพื่อป้องกันโค้ด TimeSystem พัง หากระบบนกกระเรียนยังไม่พร้อม
             local success, response = pcall(function()
                 return SpecialEventTrigger:Invoke(todayEvent.eventId, riceFieldPosition, animationToPlay, todayEvent.questId)
             end)
@@ -92,10 +80,20 @@ local function checkSpecialEvent(seasonNum, dayNum)
     end
 end
 
+local function sleepQuestsControl(player)
+	local activeQuest = DataManager.PlayersData[player.UserId].quests.active
+	local completedQuest = DataManager.PlayersData[player.UserId].quests.completed
 
--- ==========================================
--- ฟังก์ชันจัดการแสงและเวลา
--- ==========================================
+	if activeQuest then
+		if activeQuest["QT001"] then
+			local result = BindableQuestEvent:Invoke(player, "QT001", 1, "submit")
+			if result then
+				BindableQuestEvent:Invoke(player, "QT002", 1, "accept")
+			end
+		end
+	end
+end
+
 local function getLightingColors(timeDecimal)
     if timeDecimal >= 5.5 and timeDecimal < 8 then
         return Color3.fromRGB(236, 250, 247), Color3.fromRGB(216, 240, 252)
@@ -119,7 +117,7 @@ local function startNewDay()
         currentDay = 1
         currentSeason += 1
 
-        if currentSeason > MAX_SEASONS then -- ใช้ MAX_SEASONS = 3
+        if currentSeason > MAX_SEASONS then
             currentSeason = 1
             currentYear += 1
             YearValue.Value = currentYear
@@ -129,42 +127,56 @@ local function startNewDay()
 
     DayValue.Value = currentDay
 
-    -- [อัปเดตลงเซฟ]
     saveTimeData.clock_time = currentHour
     saveTimeData.day = currentDay
     saveTimeData.season = currentSeason
     saveTimeData.year = currentYear
 
-    -- เช็ค Event ประจำวันหลังขึ้นวันใหม่
     checkSpecialEvent(currentSeason, currentDay)
 end
 
-local function passOutPlayers()
-    for _, player in ipairs(Players:GetPlayers()) do
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            character.HumanoidRootPart.CFrame = HOME_SPAWN_LOCATION
-            print(player.Name .. " passed out from exhaustion!")
-        end
+-- ==========================================
+-- ฟังก์ชันจัดการตอนผู้เล่นสลบ (Exhausted)
+-- ==========================================
+local function handlePlayerPassOut()
+    isTimePaused = true
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        SleepEvent:FireClient(p, true, "คุณหมดสติเนื่องจากเหนื่อยล้าเกินไป...")
     end
-end
 
-local function sleepQuestsControl(player)
-    local activeQuest = DataManager.PlayersData[player.UserId].quests.active
-    local completedQuest = DataManager.PlayersData[player.UserId].quests.completed
+    task.wait(2)
+    startNewDay()
 
-    if activeQuest then
-        if activeQuest["QT001"] then
-            local result = BindableQuestEvent:Invoke(player, "QT001", 1, "submit")
-            if result then
-                BindableQuestEvent:Invoke(player, "QT002", 1, "accept")
+    if game.PlaceId ~= FARM_PLACE_ID then
+        for _, p in ipairs(Players:GetPlayers()) do
+            task.spawn(function()
+				TeleportFunction:Invoke(p, FARM_PLACE_ID,"Exhausted")
+            end)
+        end
+    else
+        for _, player in ipairs(Players:GetPlayers()) do
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+				character:PivotTo(HOME_SPAWN_LOCATION)
+                warn(player.Name .. " passed out and woke up at home!")
             end
         end
+
+        ClockTime.Value = "07:00"
+        Lighting.ClockTime = 7
+        local a, c = getLightingColors(7)
+        Lighting.OutdoorAmbient = a
+        Lighting.ColorShift_Top = c
+
+        isTimePaused = false
+		task.wait(3)
+
+        -- ปิดจอดำ
+        for _, p in ipairs(Players:GetPlayers()) do
+            SleepEvent:FireClient(p, false)
+        end
     end
-
-    -- if completedQuest then
-
-    -- end
 end
 
 local function startTimeTask()
@@ -214,32 +226,15 @@ local function startTimeTask()
                 })
                 timeTween:Play()
 
+                -- ตรวจสอบเวลาสลบ
                 if currentHour == PASS_OUT_HOUR and currentMinute == 0 then
-                    passOutPlayers()
-                    isTimePaused = true
-
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        SleepEvent:FireClient(p, true)
-                    end
-
-                    task.wait(3)
-                    startNewDay()
-
-                    ClockTime.Value = "07:00"
-                    Lighting.ClockTime = 7
-                    local a, c = getLightingColors(7)
-                    Lighting.OutdoorAmbient = a
-                    Lighting.ColorShift_Top = c
-
-                    isTimePaused = false
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        SleepEvent:FireClient(p, false)
-                    end
+                    handlePlayerPassOut()
                 end
             end
         end
     end)    
 end
+
 -- ==========================================
 -- ลูปการทำงานหลัก (Main Time Loop)
 -- ==========================================
@@ -258,21 +253,21 @@ end
 SleepEvent.OnServerEvent:Connect(function(player)
     if isTimePaused then return end
     isTimePaused = true
-    SleepEvent:FireClient(player, true)
+	SleepEvent:FireClient(player, true, "กำลังเข้านอน...")
 
-    task.wait(3)
     startNewDay()
-    sleepQuestsControl(player)
-    
+	
     ClockTime.Value = string.format("%02d:%02d", currentHour, currentMinute)
     Lighting.ClockTime = 7
     local ambient, colorshift = getLightingColors(7)
     Lighting.OutdoorAmbient = ambient
     Lighting.ColorShift_Top = colorshift
 
+	task.wait(3)
+	SleepEvent:FireClient(player, false)
+	sleepQuestsControl(player)
     isTimePaused = false
-    SleepEvent:FireClient(player, false)
-
+	
     print(player.Name .. " went to sleep safely and woke up at 7:00 AM.")
 end)
 
@@ -287,3 +282,4 @@ if DataManager.WorldData then
         startTimeTask()
     end
 end
+

@@ -14,14 +14,21 @@ local DataManager = require(script.Parent:WaitForChild("DataManagerModule"))
 local EconomyService = require(ReplicatedStorage.Module.EconomyService)
 
 local activeSessions = MemoryStoreService:GetSortedMap("ActiveCoopSessions")
+
+-- กำหนดพิกัดเตียงนอนสำหรับแมพฟาร์ม (ปรับ CFrame ให้ตรงกับเตียงของคุณ)
+local HOME_SPAWN_LOCATION = CFrame.new(336.433, 16.426, -146.774) 
+
 -- TELEPORT CONTROL --
-local function TeleportPlayerToPlace(player, targetPlaceId)
+-- เพิ่มพารามิเตอร์ spawnReason (ถ้าไม่ส่งมาจะให้เป็น "Normal")
+local function TeleportPlayerToPlace(player, targetPlaceId, spawnReason)
+    spawnReason = spawnReason or "Normal"
+
     if not DataManager.HostId then
         return
     end
 
     LoadingEvent:FireClient(player, true, "กำลังเตรียมข้อมูล.")
-    print(player.Name .. " กำลังจะวาร์ปออกจากเมืองไปที่ Place: " .. targetPlaceId)
+    print(player.Name .. " กำลังจะวาร์ปไปที่ Place: " .. targetPlaceId .. " เหตุผล: " .. spawnReason)
 
     task.wait(0.2)
 
@@ -107,7 +114,8 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     teleportOptions:SetTeleportData({
         HostId = hostId,
         SaveSlot = saveSlot,
-        SessionId = sessionId
+        SessionId = sessionId,
+        SpawnReason = spawnReason -- ส่งสถานะต่อไปยังเซิฟเวอร์ปลายทาง
     })
 
     local teleportSuccess, err = pcall(function()
@@ -118,7 +126,7 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
         warn("TeleportAsync failed for " .. player.Name .. ": " .. tostring(err))
         LoadingEvent:FireClient(player, true, "ไม่สามารถย้ายผู้เล่นได้ ลองใหม่อีกทีนะ !")
         task.wait(1)
-        LoadingEvent:FireClient(player, false) -- ปิด GUI
+        LoadingEvent:FireClient(player, false)
         return false, "ไม่สามารถ teleport ผู้เล่นได้"
     end
 
@@ -126,27 +134,42 @@ local function TeleportPlayerToPlace(player, targetPlaceId)
     return true
 end
 
-TeleportEvent.OnServerEvent:Connect(function(player, targetPlaceId)
-    TeleportPlayerToPlace(player, targetPlaceId)
+TeleportEvent.OnServerEvent:Connect(function(player, targetPlaceId, spawnReason)
+    TeleportPlayerToPlace(player, targetPlaceId, spawnReason)
 end)
 
-TeleportFunction.OnInvoke = function(player, targetPlaceId)
-   return TeleportPlayerToPlace(player, targetPlaceId)
+TeleportFunction.OnInvoke = function(player, targetPlaceId, spawnReason)
+   return TeleportPlayerToPlace(player, targetPlaceId, spawnReason)
 end
 -- END TELEPORT CONTROL --
 
+
 Players.PlayerAdded:Connect(function(player)
     local joinData = player:GetJoinData()
-    local teleportData = joinData.TeleportData
+    local teleportData = joinData and joinData.TeleportData
 
     if RunService:IsStudio() and not teleportData then
         print("🔧 [TESTING] จำลอง TeleportData")
         teleportData = {
             HostId = player.UserId,
             SaveSlot = "save_slot1",
-            SessionId = tostring(player.UserId) .. "_save_slot1"
+            SessionId = tostring(player.UserId) .. "_save_slot1",
+            --SpawnReason = "Exhausted" -- สำหรับทดสอบใน Studio
         }
     end
+
+    -- ดักจับการเกิดของตัวละคร (ถ้าสลบมา ให้บังคับเกิดที่เตียง)
+    player.CharacterAdded:Connect(function(character)
+        if teleportData and teleportData.SpawnReason == "Exhausted" then
+            local hrp = character:WaitForChild("HumanoidRootPart", 5)
+            if hrp then
+                -- รอ physics โหลดเสร็จเล็กน้อยแล้วย้ายพิกัด
+                task.wait(0.1)
+				character:PivotTo(HOME_SPAWN_LOCATION)
+                print(player.Name .. " ตื่นนอนที่บ้านเพราะสลบมาจากแมพอื่น")
+            end
+        end
+    end)
 
     if teleportData and teleportData.HostId and teleportData.SaveSlot then
         local hostId = teleportData.HostId
@@ -157,11 +180,13 @@ Players.PlayerAdded:Connect(function(player)
         end
 
         DataManager.LoadPlayerData(player, hostId, saveSlot)
-        print("[DataController] Player data Loaded : " .. player.Name .. "")
-
+        print("[DataController] Player data Loaded : " .. player.Name)
     else
-        warn("[DataController] : Can't find TeleportData for " ..  player.Name)
+        warn("[DataController] : Can't find TeleportData for " .. player.Name)
     end
+
+    task.wait(0.5)
+    LoadingEvent:FireClient(player, false)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
